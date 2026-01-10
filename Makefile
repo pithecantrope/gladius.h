@@ -37,10 +37,10 @@ CPPFLAGS := -MMD -MP
 all: $(TARGET_DIR)/$(TARGET)
 
 $(TARGET_DIR)/$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+	@$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
 $(TARGET_DIR)/%.o: $(SRC_DIR)/%.c | $(TARGET_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(TARGET_DIR):
 	$(MKDIR_P) $@
