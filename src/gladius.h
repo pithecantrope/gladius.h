@@ -30,7 +30,7 @@
 
 #if defined(__cplusplus)
 #error "Gladius does not support C++"
-#elif (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 202311L))
+#elif (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 202000L))
 #error "Gladius requires C23"
 #endif
 
@@ -55,6 +55,17 @@
 #define GLADIUS_ASSERT assert
 #endif // GLADIUS_ASSERT
 
+// Declaration -------------------------------------------------------------------------------------
+#define GLADIUS_KiB(x) ((size_t)(x) << 10)
+#define GLADIUS_MiB(x) ((size_t)(x) << 20)
+#define GLADIUS_GiB(x) ((size_t)(x) << 30)
+
+#ifndef GLADIUS_PREFIXED
+#define KiB GLADIUS_KiB
+#define MiB GLADIUS_MiB
+#define GiB GLADIUS_GiB
+#endif // GLADIUS_PREFIXED
+
 // Arena declaration -------------------------------------------------------------------------------
 typedef struct {
         char* buf;
@@ -62,8 +73,14 @@ typedef struct {
         size_t cap;
 } gladius_arena;
 
+#define GLADIUS_PRIa        "{buf: %p, len:%zu, cap:%zu}"
+#define GLADIUS_FMTa(arena) (arena)->buf, (arena)->len, (arena)->cap
+// printf(PRIa "\n", FMTa(arena));
+
 #ifndef GLADIUS_PREFIXED
 #define arena gladius_arena
+#define PRIa  GLADIUS_PRIa
+#define FMTa  GLADIUS_FMTa
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION

@@ -1,9 +1,12 @@
 #include <stdio.h>
+#define GLADIUS_IMPLEMENTATION
+#include "gladius.h"
 
 int
 main(void) {
-        printf("gladius.h:\n\t");
-        printf("Hello, World!\n");
+        arena* a = &(arena){.buf = malloc(KiB(67))};
+        printf(PRIa "\n", FMTa(a));
 
+        free(a->buf);
         return 0;
 }
