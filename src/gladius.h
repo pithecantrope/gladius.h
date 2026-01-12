@@ -42,22 +42,33 @@ typedef struct {
 
 #define GLADIUS_PRI_arena    "{buf: %p, len:%zu, cap:%zu}"
 #define GLADIUS_FMT_arena(a) (a)->buf, (a)->len, (a)->cap
-// printf(PRI_arena "\n", FMT_arena(arena));
+// printf(PRI_arena "\n", FMT_arena(a));
 
 GLADIUS_API gladius_arena* gladius_arena_create(size_t capacity);
 GLADIUS_API void gladius_arena_reset(gladius_arena* a);
 GLADIUS_API void gladius_arena_destroy(gladius_arena* a);
 
+typedef struct {
+        gladius_arena* a;
+        size_t len;
+} gladius_arena_mark;
+
+GLADIUS_API gladius_arena_mark gladius_arena_mark_begin(gladius_arena* a);
+GLADIUS_API void gladius_arena_mark_end(gladius_arena_mark m);
+
 #ifndef GLADIUS_PREFIXED
-#define KiB           GLADIUS_KiB
-#define MiB           GLADIUS_MiB
-#define GiB           GLADIUS_GiB
-#define arena         gladius_arena
-#define PRI_arena     GLADIUS_PRI_arena
-#define FMT_arena     GLADIUS_FMT_arena
-#define arena_create  gladius_arena_create
-#define arena_reset   gladius_arena_reset
-#define arena_destroy gladius_arena_destroy
+#define KiB              GLADIUS_KiB
+#define MiB              GLADIUS_MiB
+#define GiB              GLADIUS_GiB
+#define arena            gladius_arena
+#define PRI_arena        GLADIUS_PRI_arena
+#define FMT_arena        GLADIUS_FMT_arena
+#define arena_create     gladius_arena_create
+#define arena_reset      gladius_arena_reset
+#define arena_destroy    gladius_arena_destroy
+#define arena_mark       gladius_arena_mark
+#define arena_mark_begin gladius_arena_mark_begin
+#define arena_mark_end   gladius_arena_mark_end
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
@@ -84,6 +95,18 @@ gladius_arena_destroy(gladius_arena* a) {
         free(a->buf);
         *a = (gladius_arena){.buf = NULL, .len = 0, .cap = 0};
         free(a);
+}
+
+GLADIUS_API gladius_arena_mark
+gladius_arena_mark_begin(gladius_arena* a) {
+        assert(a != nullptr && a->buf != nullptr && "Invalid arena");
+        return (gladius_arena_mark){.a = a, .len = a->len};
+}
+
+GLADIUS_API void
+gladius_arena_mark_end(gladius_arena_mark m) {
+        assert(m.a != nullptr && m.len <= m.a->cap && "Invalid arena mark");
+        m.a->len = m.len;
 }
 
 #endif // GLADIUS_IMPLEMENTATION
