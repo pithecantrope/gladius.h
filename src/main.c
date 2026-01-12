@@ -4,9 +4,9 @@
 
 int
 main(void) {
-        arena* a = &(arena){.buf = malloc(KiB(67))};
-        printf(PRIa "\n", FMTa(a));
+        arena* a = arena_create(KiB(16));
+        printf(PRI_arena "\n", FMT_arena(a));
 
-        free(a->buf);
+        arena_destroy(a);
         return 0;
 }

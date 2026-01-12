@@ -1,1 +1,8 @@
-ignore_paths = ["Makefile", "compile_flags.txt", ".zed/*", ".clang-format"]
+ignore_paths = [
+    "codebook.toml",
+    "Makefile",
+    "compile_flags.txt",
+    ".zed/*",
+    ".clang-format",
+    ".clangd"
+]

@@ -1,28 +1,15 @@
-/* Gladius - TODO: (v0.0.0) - MIT License - https://github.com/pithecantrope/gladius.h
- *
- * Header only library for arena-based containers in C23:
- *      -> TODO: string
- *      -> TODO: vector
- *      -> TODO: hashmap
+/* gladius.h - v0.0.0 - MIT License - https://github.com/pithecantrope/gladius.h
  *
  * Usage:
- *      In exactly ONE source file, define GLADIUS_IMPLEMENTATION before including:
+ *      In exactly one .c file:
  *              #define GLADIUS_IMPLEMENTATION
  *              #include "gladius.h"
- *      In all other files, just include normally:
+ *      Elsewhere:
  *              #include "gladius.h"
  *
- * Customization (define before including):
- *      -> GLADIUS_PREFIXED
- *              Disables short name aliases (e.g., `arena` <=> `gladius_arena`).
- *      -> GLADIUS_DEF (default: extern)
- *              Controls linkage of implementation functions.
- *      -> GLADIUS_MALLOC(size)
- *              Override `malloc` from <stdlib.h>.
- *      -> GLADIUS_FREE(ptr)
- *              Override `free` from <stdlib.h>.
- *      -> GLADIUS_ASSERT(condition)
- *              Override `assert` from <assert.h>.
+ * Customization (define BEFORE including):
+ *      - GLADIUS_PREFIXED : disable short aliases (e.g., 'arena' → 'gladius_arena')
+ *      - GLADIUS_API      : function declaration prefix (default: extern)
 */
 
 #ifndef GLADIUS_HEADER
@@ -34,57 +21,71 @@
 #error "Gladius requires C23"
 #endif
 
-#include <stddef.h>
+#ifndef GLADIUS_API
+#define GLADIUS_API extern
+#endif // GLADIUS_API
 
-#ifndef GLADIUS_DEF
-#define GLADIUS_DEF extern
-#endif // GLADIUS_DEF
-
-#ifndef GLADIUS_MALLOC
-#include <stdlib.h>
-#define GLADIUS_MALLOC malloc
-#endif // GLADIUS_MALLOC
-
-#ifndef GLADIUS_FREE
-#include <stdlib.h>
-#define GLADIUS_FREE free
-#endif // GLADIUS_FREE
-
-#ifndef GLADIUS_ASSERT
 #include <assert.h>
-#define GLADIUS_ASSERT assert
-#endif // GLADIUS_ASSERT
+#include <stddef.h>
+#include <stdlib.h>
 
-// Declaration -------------------------------------------------------------------------------------
+// Arena Declaration -------------------------------------------------------------------------------
 #define GLADIUS_KiB(x) ((size_t)(x) << 10)
 #define GLADIUS_MiB(x) ((size_t)(x) << 20)
 #define GLADIUS_GiB(x) ((size_t)(x) << 30)
 
-#ifndef GLADIUS_PREFIXED
-#define KiB GLADIUS_KiB
-#define MiB GLADIUS_MiB
-#define GiB GLADIUS_GiB
-#endif // GLADIUS_PREFIXED
-
-// Arena declaration -------------------------------------------------------------------------------
 typedef struct {
         char* buf;
         size_t len;
         size_t cap;
 } gladius_arena;
 
-#define GLADIUS_PRIa        "{buf: %p, len:%zu, cap:%zu}"
-#define GLADIUS_FMTa(arena) (arena)->buf, (arena)->len, (arena)->cap
-// printf(PRIa "\n", FMTa(arena));
+#define GLADIUS_PRI_arena    "{buf: %p, len:%zu, cap:%zu}"
+#define GLADIUS_FMT_arena(a) (a)->buf, (a)->len, (a)->cap
+// printf(PRI_arena "\n", FMT_arena(arena));
+
+GLADIUS_API gladius_arena* gladius_arena_create(size_t capacity);
+GLADIUS_API void gladius_arena_reset(gladius_arena* a);
+GLADIUS_API void gladius_arena_destroy(gladius_arena* a);
 
 #ifndef GLADIUS_PREFIXED
-#define arena gladius_arena
-#define PRIa  GLADIUS_PRIa
-#define FMTa  GLADIUS_FMTa
+#define KiB           GLADIUS_KiB
+#define MiB           GLADIUS_MiB
+#define GiB           GLADIUS_GiB
+#define arena         gladius_arena
+#define PRI_arena     GLADIUS_PRI_arena
+#define FMT_arena     GLADIUS_FMT_arena
+#define arena_create  gladius_arena_create
+#define arena_reset   gladius_arena_reset
+#define arena_destroy gladius_arena_destroy
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
-// Arena definition --------------------------------------------------------------------------------
+// Arena Definition --------------------------------------------------------------------------------
+GLADIUS_API gladius_arena*
+gladius_arena_create(size_t capacity) {
+        assert(capacity > 0 && "Invalid capacity");
+        gladius_arena* a = malloc(sizeof(*a));
+        assert(a != nullptr);
+        *a = (gladius_arena){.buf = malloc(capacity), .len = 0, .cap = capacity};
+        assert(a->buf != nullptr);
+        return a;
+}
+
+GLADIUS_API void
+gladius_arena_reset(gladius_arena* a) {
+        assert(a != nullptr && "Invalid arena");
+        a->len = 0;
+}
+
+GLADIUS_API void
+gladius_arena_destroy(gladius_arena* a) {
+        assert(a != nullptr && a->buf != nullptr && "Invalid arena");
+        free(a->buf);
+        *a = (gladius_arena){.buf = NULL, .len = 0, .cap = 0};
+        free(a);
+}
+
 #endif // GLADIUS_IMPLEMENTATION
 
 #endif // GLADIUS_HEADER
