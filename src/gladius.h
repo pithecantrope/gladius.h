@@ -114,6 +114,7 @@ gladius_arena_alloc(gladius_arena* a, size_t count, size_t size, size_t align) {
         assert((align & (align - 1)) == 0 && "Invalid align");
 
         size_t padding = -(uintptr_t)(a->buf + a->len) & (align - 1);
+        assert(a->cap - a->len >= padding && "Increase arena capacity");
         assert(count <= (a->cap - a->len - padding) / size && "Increase arena capacity");
         void* ptr = a->buf + a->len + padding;
         a->len += padding + count * size;
