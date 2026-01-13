@@ -1,5 +1,12 @@
 /* gladius.h - v0.0.0 - MIT License - https://github.com/pithecantrope/gladius.h
  *
+ *          +-------------------------------------------------------------------------+
+ *          |                                 Gladius                                 |
+ *          |                                                                         |
+ *          |   A blade forged for the Arena - not of combat, but of code: where      |
+ *          |   objects sharing a lifetime are grouped and freed with a single blow.  |
+ *          +-------------------------------------------------------------------------+
+ *
  * Usage:
  *      In exactly one .c file:
  *              #define GLADIUS_IMPLEMENTATION

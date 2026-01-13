@@ -6,9 +6,9 @@ static arena* a;
 
 void
 test_arena(void) {
-        int32_t* arr = allocn(a, int32_t, 2);
-        arr[0] = arr[1] = 1;
-        assert(a->len == 8 && "arena_alloc");
+        allocn(a, int8_t, 3);
+        alloc(a, int64_t);
+        assert(a->len == 16 && "arena_alloc");
 
         arena_reset(a);
         assert(a->len == 0 && "arena_reset");
