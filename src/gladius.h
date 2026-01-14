@@ -88,6 +88,20 @@ GLADIUS_API void gladius_arena_mark_end(gladius_arena_mark m);
 #define arena_mark_end   gladius_arena_mark_end
 #endif // GLADIUS_PREFIXED
 
+// String Declaration ------------------------------------------------------------------------------
+
+// Immutable ASCII len string does not own memory data points to arena's buffer
+// Immutable view into arena-owned buffer/storage
+// lifetime is bound to the arena used at creating time
+typedef struct {
+        char* data;
+        size_t len;
+} gladius_string;
+
+#ifndef GLADIUS_PREFIXED
+#define string gladius_string
+#endif // GLADIUS_PREFIXED
+
 #ifdef GLADIUS_IMPLEMENTATION
 // Arena Definition --------------------------------------------------------------------------------
 [[nodiscard]] GLADIUS_API gladius_arena*
