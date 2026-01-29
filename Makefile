@@ -1,5 +1,5 @@
-# DEV | DEBUG | RELEASE
-MODE ?= DEV
+# dev | debug | release
+MODE ?= dev
 # Arguments for `make run`:
 ARGS ?=
 
@@ -13,12 +13,12 @@ LDLIBS := $(addprefix -l,$(LIBS))
 LDFLAGS :=
 
 STANDARD := -std=c23
-CFLAGS_DEV := $(STANDARD) -Og -g3 -Wall -Wextra -Wpedantic -Werror \
+CFLAGS_dev := $(STANDARD) -Og -g3 -Wall -Wextra -Wpedantic -Werror \
               -fstack-protector-strong -fsanitize=address,undefined -fno-omit-frame-pointer \
 			  -Walloca -Wcast-qual -Wconversion -Wdouble-promotion -Wfloat-equal -Wformat=2 \
 			  -Wshadow -Wstack-protector -Wswitch-default -Wswitch-enum -Wundef
-CFLAGS_DEBUG := $(STANDARD) -O0 -g3
-CFLAGS_RELEASE := $(STANDARD) -O3 -DNDEBUG
+CFLAGS_debug := $(STANDARD) -O0 -g3
+CFLAGS_release := $(STANDARD) -O3 -DNDEBUG
 CFLAGS := $(CFLAGS_$(MODE))
 
 BUILD_DIR := build

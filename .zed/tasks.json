@@ -1,16 +1,8 @@
 [
     {
-        "label": "Build (DEBUG)",
-        "command": "make",
-        "args": ["MODE=DEBUG", "-j8"],
-        "cwd": "$ZED_WORKTREE_ROOT",
-        "show_summary": false,
-        "show_command": false
-    },
-    {
         "label": "Run",
         "command": "make",
-        "args": ["run"],
+        "args": ["run"], // <--- ARGS
         "cwd": "$ZED_WORKTREE_ROOT",
         "show_summary": false,
         "show_command": false

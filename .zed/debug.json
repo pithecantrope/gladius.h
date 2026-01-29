@@ -3,11 +3,11 @@
         "label": "Debug native binary",
         "build": {
             "command": "make",
-            "args": ["MODE=DEBUG", "-j8"],
+            "args": ["MODE=debug", "-j8"],
             "cwd": "$ZED_WORKTREE_ROOT"
         },
-        "program": "$ZED_WORKTREE_ROOT/build/DEBUG/gladius",
-        "args": [],
+        "program": "$ZED_WORKTREE_ROOT/build/debug/gladius",
+        "args": [], // <--- ARGS
         "request": "launch",
         "adapter": "CodeLLDB"
     }
