@@ -1,11 +1,11 @@
-/* gladius.h - v0.0.0 - MIT License - https://github.com/pithecantrope/gladius.h
+/* gladius.h - v0.0.0 - MIT - https://github.com/pithecantrope/gladius.h
  *
- *          +-------------------------------------------------------------------------+
- *          |                                 Gladius                                 |
- *          |                                                                         |
- *          |   A blade forged for the Arena - not of combat, but of code: where      |
- *          |   objects sharing a lifetime are grouped and freed with a single blow.  |
- *          +-------------------------------------------------------------------------+
+ *                 +------------------------------------------+
+ *                 | Gladius - The Sword of Arena Allocation. |
+ *                 +------------------------------------------+
+ *
+ * About:
+ *      Header-only C23 arena-owned containers.
  *
  * Usage:
  *      In exactly one .c file:
@@ -14,9 +14,9 @@
  *      Elsewhere:
  *              #include "gladius.h"
  *
- * Customization (define BEFORE including):
- *      - GLADIUS_PREFIXED : disable short aliases (e.g., 'arena' → 'gladius_arena')
- *      - GLADIUS_API      : function declaration prefix (default: extern)
+ * Note:
+ *      - Asserts for error handling. No return values need checking.
+ *      - Short name aliases by default. Define GLADIUS_PREFIXED before including to disable.
 */
 
 #ifndef GLADIUS_HEADER
@@ -28,20 +28,41 @@
 #error "Gladius requires C23"
 #endif
 
+// Symbol visibility control
 #ifndef GLADIUS_API
 #define GLADIUS_API extern
 #endif // GLADIUS_API
 
+#ifndef GLADIUS_ASSERT
 #include <assert.h>
+#define GLADIUS_ASSERT assert
+#endif // GLADIUS_ASSERT
+
+#ifndef GLADIUS_MALLOC
+#include <stdlib.h>
+#define GLADIUS_MALLOC malloc
+#endif // GLADIUS_MALLOC
+
+#ifndef GLADIUS_FREE
+#include <stdlib.h>
+#define GLADIUS_FREE free
+#endif // GLADIUS_FREE
+
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
+
+typedef ptrdiff_t gladius_isize;
+
+#ifndef GLADIUS_PREFIXED
+#define isize gladius_isize
+#endif // GLADIUS_PREFIXED
 
 // Arena Declaration -------------------------------------------------------------------------------
 #define GLADIUS_KiB(x) ((size_t)(x) << 10)
 #define GLADIUS_MiB(x) ((size_t)(x) << 20)
 #define GLADIUS_GiB(x) ((size_t)(x) << 30)
 
+// Linear allocator with fixed capacity
 typedef struct {
         char* buf;
         size_t len;
@@ -56,12 +77,13 @@ typedef struct {
 GLADIUS_API void gladius_arena_reset(gladius_arena* a);
 GLADIUS_API void gladius_arena_destroy(gladius_arena* a);
 
-// Use gladius_alloc and gladius_allocn instead!
+// Use `gladius_alloc` and `gladius_allocn` instead!
 [[nodiscard]] GLADIUS_API void* gladius_arena_alloc(gladius_arena* a, size_t count, size_t size,
                                                     size_t align);
 #define gladius_alloc(a, type)       (type*)gladius_arena_alloc(a, 1, sizeof(type), alignof(type))
 #define gladius_allocn(a, type, num) (type*)gladius_arena_alloc(a, num, sizeof(type), alignof(type))
 
+// Save and restore arena state
 typedef struct {
         gladius_arena* a;
         size_t len;
@@ -88,55 +110,42 @@ GLADIUS_API void gladius_arena_mark_end(gladius_arena_mark m);
 #define arena_mark_end   gladius_arena_mark_end
 #endif // GLADIUS_PREFIXED
 
-// String Declaration ------------------------------------------------------------------------------
-
-// Immutable ASCII len string does not own memory data points to arena's buffer
-// Immutable view into arena-owned buffer/storage
-// lifetime is bound to the arena used at creating time
-typedef struct {
-        char* data;
-        size_t len;
-} gladius_string;
-
-#ifndef GLADIUS_PREFIXED
-#define string gladius_string
-#endif // GLADIUS_PREFIXED
-
 #ifdef GLADIUS_IMPLEMENTATION
 // Arena Definition --------------------------------------------------------------------------------
 [[nodiscard]] GLADIUS_API gladius_arena*
 gladius_arena_create(size_t capacity) {
-        assert(capacity > 0 && "Invalid capacity");
-        gladius_arena* a = malloc(sizeof(*a));
-        assert(a != nullptr);
-        *a = (gladius_arena){.buf = malloc(capacity), .len = 0, .cap = capacity};
-        assert(a->buf != nullptr);
+        GLADIUS_ASSERT(capacity > 0 && "Invalid capacity");
+        gladius_arena* a = GLADIUS_MALLOC(sizeof(*a));
+        GLADIUS_ASSERT(a != nullptr);
+        *a = (gladius_arena){.buf = GLADIUS_MALLOC(capacity), .len = 0, .cap = capacity};
+        GLADIUS_ASSERT(a->buf != nullptr);
         return a;
 }
 
 GLADIUS_API void
 gladius_arena_reset(gladius_arena* a) {
-        assert(a != nullptr && a->buf != nullptr && "Invalid arena");
+        GLADIUS_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
         a->len = 0;
 }
 
 GLADIUS_API void
 gladius_arena_destroy(gladius_arena* a) {
-        assert(a != nullptr && a->buf != nullptr && "Invalid arena");
-        free(a->buf);
-        *a = (gladius_arena){.buf = NULL, .len = 0, .cap = 0};
-        free(a);
+        GLADIUS_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
+        GLADIUS_FREE(a->buf);
+        *a = (gladius_arena){0};
+        GLADIUS_FREE(a);
 }
 
 [[nodiscard]] GLADIUS_API void*
 gladius_arena_alloc(gladius_arena* a, size_t count, size_t size, size_t align) {
-        assert(a != nullptr && a->buf != nullptr && "Invalid arena");
-        assert(size > 0 && "Invalid size");
-        assert((align & (align - 1)) == 0 && "Invalid align");
+        GLADIUS_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
+        GLADIUS_ASSERT(size > 0 && "Invalid size");
+        GLADIUS_ASSERT((align & (align - 1)) == 0 && "Invalid align");
+        GLADIUS_ASSERT(align <= alignof(max_align_t) && "Invalid align");
 
         size_t padding = -(uintptr_t)(a->buf + a->len) & (align - 1);
-        assert(a->cap - a->len >= padding && "Increase arena capacity");
-        assert(count <= (a->cap - a->len - padding) / size && "Increase arena capacity");
+        GLADIUS_ASSERT(a->cap - a->len >= padding && "Increase arena capacity");
+        GLADIUS_ASSERT(count <= (a->cap - a->len - padding) / size && "Increase arena capacity");
         void* ptr = a->buf + a->len + padding;
         a->len += padding + count * size;
         return ptr;
@@ -144,13 +153,13 @@ gladius_arena_alloc(gladius_arena* a, size_t count, size_t size, size_t align) {
 
 [[nodiscard]] GLADIUS_API gladius_arena_mark
 gladius_arena_mark_begin(gladius_arena* a) {
-        assert(a != nullptr && a->buf != nullptr && "Invalid arena");
+        GLADIUS_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
         return (gladius_arena_mark){.a = a, .len = a->len};
 }
 
 GLADIUS_API void
 gladius_arena_mark_end(gladius_arena_mark m) {
-        assert(m.a != nullptr && m.len <= m.a->cap && "Invalid arena mark");
+        GLADIUS_ASSERT(m.a != nullptr && m.len <= m.a->cap && "Invalid arena mark");
         m.a->len = m.len;
 }
 
