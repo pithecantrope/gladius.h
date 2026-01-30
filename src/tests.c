@@ -22,7 +22,7 @@ test_arena(Arena* a) {
 void
 test_string(Arena* a) {
         (void)a;
-        String s = {.data = "Hello, World!", .len = 12};
+        String s = SL("Hello, World!");
         printf(PRIString "\n", FMTString(s));
 }
 

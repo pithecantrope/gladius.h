@@ -64,16 +64,16 @@ typedef struct {
         size_t cap;
 } GldArena;
 
+// printf(PRIArena "\n", FMTArena(a));
 #define GLD_PRIArena    "{buf:%p, len:%zu, cap:%zu}"
 #define GLD_FMTArena(a) (a)->buf, (a)->len, (a)->cap
-// printf(PRIArena "\n", FMTArena(a));
 
 [[nodiscard]] GLD_API GldArena* gld_arena_create(size_t capacity);
 GLD_API void gld_arena_reset(GldArena* a);
 GLD_API void gld_arena_destroy(GldArena* a);
 
 // Use `gld_alloc` and `gld_allocn` instead!
-[[nodiscard]] GLD_API void* gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align);
+GLD_API void* gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align);
 #define gld_alloc(a, type)       (type*)gld_arena_alloc(a, 1, sizeof(type), alignof(type))
 #define gld_allocn(a, type, num) (type*)gld_arena_alloc(a, num, sizeof(type), alignof(type))
 
@@ -112,14 +112,31 @@ typedef struct {
         int len;
 } GldString;
 
+// printf(PRIString "\n", FMTString(s));
 #define GLD_PRIString    "{data:%.*s, len:%d}"
 #define GLD_FMTString(s) (s).len, (s).data, (s).len
-// printf(PRIString "\n", FMTString(s));
+
+typedef struct {
+        GldString* strings;
+        int len;
+} GldStrings;
+
+// Read-only
+#define GLD_SL(literal)                                                                            \
+        (GldString) { .data = literal, .len = (int)(sizeof(literal) - 1) }
+// Arena-owned
+#define GLD_SA(a, literal) gld_string_new(a, literal, sizeof(literal) - 1)
+
+[[nodiscard]] GLD_API GldString gld_string_new(GldArena* a, const char* s, size_t len);
 
 #ifndef GLADIUS_PREFIXED
-#define String    GldString
-#define PRIString GLD_PRIString
-#define FMTString GLD_FMTString
+#define String     GldString
+#define PRIString  GLD_PRIString
+#define FMTString  GLD_FMTString
+#define Strings    GldStrings
+#define SL         GLD_SL
+#define SA         GLD_SA
+#define string_new gld_string_new
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
