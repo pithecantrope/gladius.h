@@ -19,11 +19,19 @@ test_arena(Arena* a) {
         assert(a->len == 0 && "arena_mark");
 }
 
+void
+test_string(Arena* a) {
+        (void)a;
+        String s = {.data = "Hello, World!", .len = 12};
+        printf(PRIString "\n", FMTString(s));
+}
+
 int
 main(void) {
         Arena* a = arena_create(KiB(16)); // MiB, GiB
 
         test_arena(a);
+        test_string(a);
         printf("\033[32mAll tests passed!\033[0m\n");
 
         printf("Arena: " PRIArena "\n", FMTArena(a));

@@ -51,13 +51,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef ptrdiff_t gld_isize;
-
-#ifndef GLADIUS_PREFIXED
-#define isize gld_isize
-#endif // GLADIUS_PREFIXED
-
 // Arena Declaration -------------------------------------------------------------------------------
+
 #define GLD_KiB(x) ((size_t)(x) << 10)
 #define GLD_MiB(x) ((size_t)(x) << 20)
 #define GLD_GiB(x) ((size_t)(x) << 30)
@@ -69,7 +64,7 @@ typedef struct {
         size_t cap;
 } GldArena;
 
-#define GLD_PRIArena    "{buf: %p, len:%zu, cap:%zu}"
+#define GLD_PRIArena    "{buf:%p, len:%zu, cap:%zu}"
 #define GLD_FMTArena(a) (a)->buf, (a)->len, (a)->cap
 // printf(PRIArena "\n", FMTArena(a));
 
@@ -109,8 +104,27 @@ GLD_API void gld_arena_mark_end(GldArenaMark m);
 #define arena_mark_end   gld_arena_mark_end
 #endif // GLADIUS_PREFIXED
 
+// String Declaration ------------------------------------------------------------------------------
+
+// Mutable slice into arena memory (not null-terminated)
+typedef struct {
+        char* data;
+        int len;
+} GldString;
+
+#define GLD_PRIString    "{data:%.*s, len:%d}"
+#define GLD_FMTString(s) (s).len, (s).data, (s).len
+// printf(PRIString "\n", FMTString(s));
+
+#ifndef GLADIUS_PREFIXED
+#define String    GldString
+#define PRIString GLD_PRIString
+#define FMTString GLD_FMTString
+#endif // GLADIUS_PREFIXED
+
 #ifdef GLADIUS_IMPLEMENTATION
 // Arena Definition --------------------------------------------------------------------------------
+
 [[nodiscard]] GLD_API GldArena*
 gld_arena_create(size_t capacity) {
         GLD_ASSERT(capacity > 0 && "Invalid capacity");
