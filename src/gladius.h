@@ -48,14 +48,12 @@
 #define GLD_FREE free
 #endif // GLD_FREE
 
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 // Arena Declaration -------------------------------------------------------------------------------
-
-#define GLD_KiB(x) ((size_t)(x) << 10)
-#define GLD_MiB(x) ((size_t)(x) << 20)
-#define GLD_GiB(x) ((size_t)(x) << 30)
 
 // Linear allocator with fixed capacity
 typedef struct {
@@ -67,6 +65,10 @@ typedef struct {
 // printf(PRIArena "\n", FMTArena(a));
 #define GLD_PRIArena    "{buf:%p, len:%zu, cap:%zu}"
 #define GLD_FMTArena(a) (a)->buf, (a)->len, (a)->cap
+
+#define GLD_KiB(x)      ((size_t)(x) << 10)
+#define GLD_MiB(x)      ((size_t)(x) << 20)
+#define GLD_GiB(x)      ((size_t)(x) << 30)
 
 [[nodiscard]] GLD_API GldArena* gld_arena_create(size_t capacity);
 GLD_API void gld_arena_reset(GldArena* a);
@@ -87,12 +89,12 @@ typedef struct {
 GLD_API void gld_arena_mark_end(GldArenaMark m);
 
 #ifndef GLADIUS_PREFIXED
-#define KiB              GLD_KiB
-#define MiB              GLD_MiB
-#define GiB              GLD_GiB
 #define Arena            GldArena
 #define PRIArena         GLD_PRIArena
 #define FMTArena         GLD_FMTArena
+#define KiB              GLD_KiB
+#define MiB              GLD_MiB
+#define GiB              GLD_GiB
 #define arena_create     gld_arena_create
 #define arena_reset      gld_arena_reset
 #define arena_destroy    gld_arena_destroy
@@ -106,7 +108,7 @@ GLD_API void gld_arena_mark_end(GldArenaMark m);
 
 // String Declaration ------------------------------------------------------------------------------
 
-// Mutable slice into arena memory (not null-terminated)
+// Mutable slice of bytes into arena memory (not null-terminated)
 typedef struct {
         char* data;
         int len;
@@ -142,6 +144,7 @@ typedef struct {
 #ifdef GLADIUS_IMPLEMENTATION
 // Arena Definition --------------------------------------------------------------------------------
 
+//
 [[nodiscard]] GLD_API GldArena*
 gld_arena_create(size_t capacity) {
         GLD_ASSERT(capacity > 0 && "Invalid capacity");
@@ -191,6 +194,19 @@ GLD_API void
 gld_arena_mark_end(GldArenaMark m) {
         GLD_ASSERT(m.a != nullptr && m.len <= m.a->cap && "Invalid arena mark");
         m.a->len = m.len;
+}
+
+// String Definition -------------------------------------------------------------------------------
+
+//
+[[nodiscard]] GLD_API GldString
+gld_string_new(GldArena* a, const char* s, size_t len) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
+        GLD_ASSERT(s != nullptr && "Invalid string");
+        GLD_ASSERT(len <= INT_MAX && "Invalid len");
+        GldString res = {.data = allocn(a, char, len), .len = (int)len};
+        memcpy(res.data, s, len);
+        return res;
 }
 
 #endif // GLADIUS_IMPLEMENTATION

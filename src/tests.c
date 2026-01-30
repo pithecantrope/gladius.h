@@ -21,9 +21,12 @@ test_arena(Arena* a) {
 
 void
 test_string(Arena* a) {
-        (void)a;
-        String s = SL("Hello, World!");
-        printf(PRIString "\n", FMTString(s));
+        String Hello = SL("Hello, World!");
+        printf("String: " PRIString "\n", FMTString(Hello));
+
+        size_t before = a->len;
+        String s = SA(a, "Egor Afanasin");
+        assert(before + (size_t)s.len == a->len && "SA");
 }
 
 int
@@ -32,9 +35,9 @@ main(void) {
 
         test_arena(a);
         test_string(a);
+        printf("Arena: " PRIArena "\n", FMTArena(a));
         printf("\033[32mAll tests passed!\033[0m\n");
 
-        printf("Arena: " PRIArena "\n", FMTArena(a));
         arena_destroy(a);
         return 0;
 }
