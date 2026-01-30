@@ -16,7 +16,7 @@
  *
  * Note:
  *      - Asserts for error handling. No return values need checking.
- *      - Short name aliases by default. Define GLADIUS_PREFIXED before including to disable.
+ *      - Short aliases by default. Define GLADIUS_PREFIXED before including to disable.
 */
 
 #ifndef GLADIUS_HEADER
@@ -29,137 +29,136 @@
 #endif
 
 // Symbol visibility control
-#ifndef GLADIUS_API
-#define GLADIUS_API extern
-#endif // GLADIUS_API
+#ifndef GLD_API
+#define GLD_API extern
+#endif // GLD_API
 
-#ifndef GLADIUS_ASSERT
+#ifndef GLD_ASSERT
 #include <assert.h>
-#define GLADIUS_ASSERT assert
-#endif // GLADIUS_ASSERT
+#define GLD_ASSERT assert
+#endif // GLD_ASSERT
 
-#ifndef GLADIUS_MALLOC
+#ifndef GLD_MALLOC
 #include <stdlib.h>
-#define GLADIUS_MALLOC malloc
-#endif // GLADIUS_MALLOC
+#define GLD_MALLOC malloc
+#endif // GLD_MALLOC
 
-#ifndef GLADIUS_FREE
+#ifndef GLD_FREE
 #include <stdlib.h>
-#define GLADIUS_FREE free
-#endif // GLADIUS_FREE
+#define GLD_FREE free
+#endif // GLD_FREE
 
 #include <stddef.h>
 #include <stdint.h>
 
-typedef ptrdiff_t gladius_isize;
+typedef ptrdiff_t gld_isize;
 
 #ifndef GLADIUS_PREFIXED
-#define isize gladius_isize
+#define isize gld_isize
 #endif // GLADIUS_PREFIXED
 
 // Arena Declaration -------------------------------------------------------------------------------
-#define GLADIUS_KiB(x) ((size_t)(x) << 10)
-#define GLADIUS_MiB(x) ((size_t)(x) << 20)
-#define GLADIUS_GiB(x) ((size_t)(x) << 30)
+#define GLD_KiB(x) ((size_t)(x) << 10)
+#define GLD_MiB(x) ((size_t)(x) << 20)
+#define GLD_GiB(x) ((size_t)(x) << 30)
 
 // Linear allocator with fixed capacity
 typedef struct {
         char* buf;
         size_t len;
         size_t cap;
-} gladius_arena;
+} GldArena;
 
-#define GLADIUS_PRI_arena    "{buf: %p, len:%zu, cap:%zu}"
-#define GLADIUS_FMT_arena(a) (a)->buf, (a)->len, (a)->cap
-// printf(PRI_arena "\n", FMT_arena(a));
+#define GLD_PRIArena    "{buf: %p, len:%zu, cap:%zu}"
+#define GLD_FMTArena(a) (a)->buf, (a)->len, (a)->cap
+// printf(PRIArena "\n", FMTArena(a));
 
-[[nodiscard]] GLADIUS_API gladius_arena* gladius_arena_create(size_t capacity);
-GLADIUS_API void gladius_arena_reset(gladius_arena* a);
-GLADIUS_API void gladius_arena_destroy(gladius_arena* a);
+[[nodiscard]] GLD_API GldArena* gld_arena_create(size_t capacity);
+GLD_API void gld_arena_reset(GldArena* a);
+GLD_API void gld_arena_destroy(GldArena* a);
 
-// Use `gladius_alloc` and `gladius_allocn` instead!
-[[nodiscard]] GLADIUS_API void* gladius_arena_alloc(gladius_arena* a, size_t count, size_t size,
-                                                    size_t align);
-#define gladius_alloc(a, type)       (type*)gladius_arena_alloc(a, 1, sizeof(type), alignof(type))
-#define gladius_allocn(a, type, num) (type*)gladius_arena_alloc(a, num, sizeof(type), alignof(type))
+// Use `gld_alloc` and `gld_allocn` instead!
+[[nodiscard]] GLD_API void* gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align);
+#define gld_alloc(a, type)       (type*)gld_arena_alloc(a, 1, sizeof(type), alignof(type))
+#define gld_allocn(a, type, num) (type*)gld_arena_alloc(a, num, sizeof(type), alignof(type))
 
 // Save and restore arena state
 typedef struct {
-        gladius_arena* a;
+        GldArena* a;
         size_t len;
-} gladius_arena_mark;
+} GldArenaMark;
 
-[[nodiscard]] GLADIUS_API gladius_arena_mark gladius_arena_mark_begin(gladius_arena* a);
-GLADIUS_API void gladius_arena_mark_end(gladius_arena_mark m);
+[[nodiscard]] GLD_API GldArenaMark gld_arena_mark_begin(GldArena* a);
+GLD_API void gld_arena_mark_end(GldArenaMark m);
 
 #ifndef GLADIUS_PREFIXED
-#define KiB              GLADIUS_KiB
-#define MiB              GLADIUS_MiB
-#define GiB              GLADIUS_GiB
-#define arena            gladius_arena
-#define PRI_arena        GLADIUS_PRI_arena
-#define FMT_arena        GLADIUS_FMT_arena
-#define arena_create     gladius_arena_create
-#define arena_reset      gladius_arena_reset
-#define arena_destroy    gladius_arena_destroy
-#define arena_alloc      gladius_arena_alloc
-#define alloc            gladius_alloc
-#define allocn           gladius_allocn
-#define arena_mark       gladius_arena_mark
-#define arena_mark_begin gladius_arena_mark_begin
-#define arena_mark_end   gladius_arena_mark_end
+#define KiB              GLD_KiB
+#define MiB              GLD_MiB
+#define GiB              GLD_GiB
+#define Arena            GldArena
+#define PRIArena         GLD_PRIArena
+#define FMTArena         GLD_FMTArena
+#define arena_create     gld_arena_create
+#define arena_reset      gld_arena_reset
+#define arena_destroy    gld_arena_destroy
+#define arena_alloc      gld_arena_alloc
+#define alloc            gld_alloc
+#define allocn           gld_allocn
+#define ArenaMark        GldArenaMark
+#define arena_mark_begin gld_arena_mark_begin
+#define arena_mark_end   gld_arena_mark_end
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
 // Arena Definition --------------------------------------------------------------------------------
-[[nodiscard]] GLADIUS_API gladius_arena*
-gladius_arena_create(size_t capacity) {
-        GLADIUS_ASSERT(capacity > 0 && "Invalid capacity");
-        gladius_arena* a = GLADIUS_MALLOC(sizeof(*a));
-        GLADIUS_ASSERT(a != nullptr);
-        *a = (gladius_arena){.buf = GLADIUS_MALLOC(capacity), .len = 0, .cap = capacity};
-        GLADIUS_ASSERT(a->buf != nullptr);
+[[nodiscard]] GLD_API GldArena*
+gld_arena_create(size_t capacity) {
+        GLD_ASSERT(capacity > 0 && "Invalid capacity");
+        GldArena* a = GLD_MALLOC(sizeof(*a));
+        GLD_ASSERT(a != nullptr);
+        *a = (GldArena){.buf = GLD_MALLOC(capacity), .len = 0, .cap = capacity};
+        GLD_ASSERT(a->buf != nullptr);
         return a;
 }
 
-GLADIUS_API void
-gladius_arena_reset(gladius_arena* a) {
-        GLADIUS_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
+GLD_API void
+gld_arena_reset(GldArena* a) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
         a->len = 0;
 }
 
-GLADIUS_API void
-gladius_arena_destroy(gladius_arena* a) {
-        GLADIUS_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
-        GLADIUS_FREE(a->buf);
-        *a = (gladius_arena){0};
-        GLADIUS_FREE(a);
+GLD_API void
+gld_arena_destroy(GldArena* a) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
+        GLD_FREE(a->buf);
+        *a = (GldArena){0};
+        GLD_FREE(a);
 }
 
-[[nodiscard]] GLADIUS_API void*
-gladius_arena_alloc(gladius_arena* a, size_t count, size_t size, size_t align) {
-        GLADIUS_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
-        GLADIUS_ASSERT(size > 0 && "Invalid size");
-        GLADIUS_ASSERT((align & (align - 1)) == 0 && "Invalid align");
-        GLADIUS_ASSERT(align <= alignof(max_align_t) && "Invalid align");
+[[nodiscard]] GLD_API void*
+gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
+        GLD_ASSERT(size > 0 && "Invalid size");
+        GLD_ASSERT((align & (align - 1)) == 0 && "Invalid align");
+        GLD_ASSERT(align <= alignof(max_align_t) && "Invalid align");
 
         size_t padding = -(uintptr_t)(a->buf + a->len) & (align - 1);
-        GLADIUS_ASSERT(a->cap - a->len >= padding && "Increase arena capacity");
-        GLADIUS_ASSERT(count <= (a->cap - a->len - padding) / size && "Increase arena capacity");
+        GLD_ASSERT(a->cap - a->len >= padding && "Increase arena capacity");
+        GLD_ASSERT(count <= (a->cap - a->len - padding) / size && "Increase arena capacity");
         void* ptr = a->buf + a->len + padding;
         a->len += padding + count * size;
         return ptr;
 }
 
-[[nodiscard]] GLADIUS_API gladius_arena_mark
-gladius_arena_mark_begin(gladius_arena* a) {
-        GLADIUS_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
-        return (gladius_arena_mark){.a = a, .len = a->len};
+[[nodiscard]] GLD_API GldArenaMark
+gld_arena_mark_begin(GldArena* a) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
+        return (GldArenaMark){.a = a, .len = a->len};
 }
 
-GLADIUS_API void
-gladius_arena_mark_end(gladius_arena_mark m) {
-        GLADIUS_ASSERT(m.a != nullptr && m.len <= m.a->cap && "Invalid arena mark");
+GLD_API void
+gld_arena_mark_end(GldArenaMark m) {
+        GLD_ASSERT(m.a != nullptr && m.len <= m.a->cap && "Invalid arena mark");
         m.a->len = m.len;
 }
 
