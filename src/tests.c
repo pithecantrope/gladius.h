@@ -25,8 +25,13 @@ test_string(Arena* a) {
         printf("String: " PRIString "\n", FMTString(Hello));
 
         size_t before = a->len;
-        String s = SA(a, "Egor Afanasin");
-        assert(before + (size_t)s.len == a->len && "SA");
+        String author = SA(a, "Egor Afanasin");
+        assert(before + (size_t)author.len == a->len && "SA");
+
+        before = a->len;
+        String s = string_dup(a, author);
+        assert(before + (size_t)s.len == a->len && s.len == author.len && "string_dup");
+        assert(memcmp(s.data, author.data, (size_t)s.len) == 0 && "string_dup");
 }
 
 int
@@ -36,7 +41,7 @@ main(void) {
         test_arena(a);
         test_string(a);
         printf("Arena: " PRIArena "\n", FMTArena(a));
-        printf("\033[32mAll tests passed!\033[0m\n");
+        printf("\n\033[32mAll tests have been passed!\033[0m\n");
 
         arena_destroy(a);
         return 0;

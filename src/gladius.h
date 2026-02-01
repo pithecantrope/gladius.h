@@ -1,8 +1,6 @@
 /* gladius.h - v0.0.0 - MIT - https://github.com/pithecantrope/gladius.h
  *
- *                 +------------------------------------------+
- *                 | Gladius - The Sword of Arena Allocation. |
- *                 +------------------------------------------+
+ * Arena Allocation, Sharpened.
  *
  * About:
  *      Header-only C23 arena-owned containers.
@@ -16,7 +14,7 @@
  *
  * Note:
  *      - Asserts for error handling. No return values need checking.
- *      - Short aliases by default. Define GLADIUS_PREFIXED before including to disable.
+ *      - Short aliases by default. Define GLADIUS_PREFIXED to disable.
 */
 
 #ifndef GLADIUS_HEADER
@@ -74,7 +72,7 @@ typedef struct {
 GLD_API void gld_arena_reset(GldArena* a);
 GLD_API void gld_arena_destroy(GldArena* a);
 
-// Use `gld_alloc` and `gld_allocn` instead!
+// Use `gld_alloc` and `gld_allocn` macros instead!
 GLD_API void* gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align);
 #define gld_alloc(a, type)       (type*)gld_arena_alloc(a, 1, sizeof(type), alignof(type))
 #define gld_allocn(a, type, num) (type*)gld_arena_alloc(a, num, sizeof(type), alignof(type))
@@ -108,7 +106,7 @@ GLD_API void gld_arena_mark_end(GldArenaMark m);
 
 // String Declaration ------------------------------------------------------------------------------
 
-// Mutable slice of bytes into arena memory (not null-terminated)
+// Mutable byte slice into arena memory (no null terminator)
 typedef struct {
         char* data;
         int len;
@@ -130,6 +128,7 @@ typedef struct {
 #define GLD_SA(a, literal) gld_string_new(a, literal, sizeof(literal) - 1)
 
 [[nodiscard]] GLD_API GldString gld_string_new(GldArena* a, const char* s, size_t len);
+[[nodiscard]] GLD_API GldString gld_string_dup(GldArena* a, GldString s);
 
 #ifndef GLADIUS_PREFIXED
 #define String     GldString
@@ -139,6 +138,7 @@ typedef struct {
 #define SL         GLD_SL
 #define SA         GLD_SA
 #define string_new gld_string_new
+#define string_dup gld_string_dup
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
@@ -176,6 +176,9 @@ gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align) {
         GLD_ASSERT((align & (align - 1)) == 0 && "Invalid align");
         GLD_ASSERT(align <= alignof(max_align_t) && "Invalid align");
 
+        if (count == 0) {
+                return nullptr;
+        }
         size_t padding = -(uintptr_t)(a->buf + a->len) & (align - 1);
         GLD_ASSERT(a->cap - a->len >= padding && "Increase arena capacity");
         GLD_ASSERT(count <= (a->cap - a->len - padding) / size && "Increase arena capacity");
@@ -201,11 +204,21 @@ gld_arena_mark_end(GldArenaMark m) {
 //
 [[nodiscard]] GLD_API GldString
 gld_string_new(GldArena* a, const char* s, size_t len) {
-        GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
         GLD_ASSERT(s != nullptr && "Invalid string");
         GLD_ASSERT(len <= INT_MAX && "Invalid len");
-        GldString res = {.data = allocn(a, char, len), .len = (int)len};
+        GldString res = {.data = gld_allocn(a, char, len), .len = (int)len};
         memcpy(res.data, s, len);
+        return res;
+}
+
+[[nodiscard]] GLD_API GldString
+gld_string_dup(GldArena* a, GldString s) {
+        GLD_ASSERT(s.len >= 0 && "Invalid string");
+        if (s.len == 0) {
+                return (GldString){.data = nullptr, .len = 0};
+        }
+        GldString res = {.data = gld_allocn(a, char, (size_t)s.len), .len = s.len};
+        memcpy(res.data, s.data, (size_t)s.len);
         return res;
 }
 
