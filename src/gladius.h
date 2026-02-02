@@ -47,8 +47,10 @@
 #endif // GLD_FREE
 
 #include <limits.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 // Arena Declaration -------------------------------------------------------------------------------
@@ -129,6 +131,10 @@ typedef struct {
 
 [[nodiscard]] GLD_API GldString gld_string_new(GldArena* a, const char* s, size_t len);
 [[nodiscard]] GLD_API GldString gld_string_dup(GldArena* a, GldString s);
+#if __has_c_attribute(gnu::format)
+[[gnu::format(printf, 2, 3)]]
+#endif
+[[nodiscard]] GLD_API GldString gld_string_fmt(GldArena* a, const char* fmt, ...);
 
 #ifndef GLADIUS_PREFIXED
 #define String     GldString
@@ -139,13 +145,14 @@ typedef struct {
 #define SA         GLD_SA
 #define string_new gld_string_new
 #define string_dup gld_string_dup
+#define string_fmt gld_string_fmt
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
 // Arena Definition --------------------------------------------------------------------------------
 
 //
-[[nodiscard]] GLD_API GldArena*
+GldArena*
 gld_arena_create(size_t capacity) {
         GLD_ASSERT(capacity > 0 && "Invalid capacity");
         GldArena* a = GLD_MALLOC(sizeof(*a));
@@ -155,13 +162,13 @@ gld_arena_create(size_t capacity) {
         return a;
 }
 
-GLD_API void
+void
 gld_arena_reset(GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
         a->len = 0;
 }
 
-GLD_API void
+void
 gld_arena_destroy(GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
         GLD_FREE(a->buf);
@@ -169,7 +176,7 @@ gld_arena_destroy(GldArena* a) {
         GLD_FREE(a);
 }
 
-[[nodiscard]] GLD_API void*
+void*
 gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
         GLD_ASSERT(size > 0 && "Invalid size");
@@ -187,13 +194,13 @@ gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align) {
         return ptr;
 }
 
-[[nodiscard]] GLD_API GldArenaMark
+GldArenaMark
 gld_arena_mark_begin(GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && "Invalid arena");
         return (GldArenaMark){.a = a, .len = a->len};
 }
 
-GLD_API void
+void
 gld_arena_mark_end(GldArenaMark m) {
         GLD_ASSERT(m.a != nullptr && m.len <= m.a->cap && "Invalid arena mark");
         m.a->len = m.len;
@@ -202,7 +209,7 @@ gld_arena_mark_end(GldArenaMark m) {
 // String Definition -------------------------------------------------------------------------------
 
 //
-[[nodiscard]] GLD_API GldString
+GldString
 gld_string_new(GldArena* a, const char* s, size_t len) {
         GLD_ASSERT(s != nullptr && "Invalid string");
         GLD_ASSERT(len <= INT_MAX && "Invalid len");
@@ -211,7 +218,7 @@ gld_string_new(GldArena* a, const char* s, size_t len) {
         return res;
 }
 
-[[nodiscard]] GLD_API GldString
+GldString
 gld_string_dup(GldArena* a, GldString s) {
         GLD_ASSERT(s.len >= 0 && "Invalid string");
         if (s.len == 0) {
@@ -219,6 +226,21 @@ gld_string_dup(GldArena* a, GldString s) {
         }
         GldString res = {.data = gld_allocn(a, char, (size_t)s.len), .len = s.len};
         memcpy(res.data, s.data, (size_t)s.len);
+        return res;
+}
+
+GldString
+gld_string_fmt(GldArena* a, const char* fmt, ...) {
+        va_list args;
+        va_start(args, fmt);
+        int len = vsnprintf(NULL, 0, fmt, args);
+        va_end(args);
+        GLD_ASSERT(len >= 0 && "Invalid format string");
+
+        va_start(args, fmt);
+        GldString res = {.data = allocn(a, char, (size_t)len), .len = len};
+        vsnprintf(res.data, (size_t)len + 1, fmt, args);
+        va_end(args);
         return res;
 }
 

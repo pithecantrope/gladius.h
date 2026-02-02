@@ -1,4 +1,3 @@
-#include <stdio.h>
 // #define GLADIUS_PREFIXED
 #define GLADIUS_IMPLEMENTATION
 #include "gladius.h"
@@ -32,6 +31,8 @@ test_string(Arena* a) {
         String s = string_dup(a, author);
         assert(before + (size_t)s.len == a->len && s.len == author.len && "string_dup");
         assert(memcmp(s.data, author.data, (size_t)s.len) == 0 && "string_dup");
+
+        printf("String: " PRIString "\n", FMTString(string_fmt(a, "hello %s %d", "World!", 67)));
 }
 
 int
