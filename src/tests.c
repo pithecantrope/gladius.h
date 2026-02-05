@@ -20,19 +20,26 @@ test_arena(Arena* a) {
 
 void
 test_string(Arena* a) {
-        String Hello = SL("Hello, World!");
-        printf("String: " PRIString "\n", FMTString(Hello));
+        printf("Author: " PRIString "\n", FMTString(SL("Egor Afanasin")));
+
+        String empty = {0}, s;
+        String hello = SL("hello, world!"), Hello = SL("Hello, World!");
+        String l = SL("l"), W = SL("W");
+
+        assert(string_cmp(Hello, hello) == -1 && "string_cmp");
+        assert(string_cmp(l, W) == 1 && "string_cmp");
+
+        assert(string_eq(empty, empty) && "string_eq");
 
         size_t before = a->len;
-        String author = SA(a, "Egor Afanasin");
-        assert(before + (size_t)author.len == a->len && "SA");
+        String desc = SA(a, "Arena-owned string");
+        assert(before + (size_t)desc.len == a->len && "string_new");
 
         before = a->len;
-        String s = string_dup(a, author);
-        assert(before + (size_t)s.len == a->len && s.len == author.len && "string_dup");
-        assert(memcmp(s.data, author.data, (size_t)s.len) == 0 && "string_dup");
+        s = string_dup(a, desc);
+        assert(before + (size_t)s.len == a->len && string_eq(s, desc) && "string_dup");
 
-        printf("String: " PRIString "\n", FMTString(string_fmt(a, "hello %s %d", "World!", 67)));
+        assert(string_eq(hello, string_fmt(a, "%s, %s!", "hello", "world")) && "string_fmt");
 }
 
 int

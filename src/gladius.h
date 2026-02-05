@@ -108,7 +108,7 @@ GLD_API void gld_arena_mark_end(GldArenaMark m);
 
 // String Declaration ------------------------------------------------------------------------------
 
-// Mutable byte slice into arena memory (no null terminator)
+// Arena-owned string (no null terminator)
 typedef struct {
         char* data;
         int len;
@@ -118,10 +118,8 @@ typedef struct {
 #define GLD_PRIString    "{data:%.*s, len:%d}"
 #define GLD_FMTString(s) (s).len, (s).data, (s).len
 
-typedef struct {
-        GldString* strings;
-        int len;
-} GldStrings;
+[[nodiscard]] GLD_API int gld_string_cmp(GldString s1, GldString s2);
+[[nodiscard]] GLD_API bool gld_string_eq(GldString s1, GldString s2);
 
 // Read-only
 #define GLD_SL(literal)                                                                            \
@@ -140,7 +138,8 @@ typedef struct {
 #define String     GldString
 #define PRIString  GLD_PRIString
 #define FMTString  GLD_FMTString
-#define Strings    GldStrings
+#define string_cmp gld_string_cmp
+#define string_eq  gld_string_eq
 #define SL         GLD_SL
 #define SA         GLD_SA
 #define string_new gld_string_new
@@ -209,6 +208,27 @@ gld_arena_mark_end(GldArenaMark m) {
 // String Definition -------------------------------------------------------------------------------
 
 //
+int
+gld_string_cmp(GldString s1, GldString s2) {
+        GLD_ASSERT(((s1.data == nullptr && s1.len == 0) || (s1.data != nullptr && s1.len > 0))
+                   && "Invalid first string");
+        GLD_ASSERT(((s2.data == nullptr && s2.len == 0) || (s2.data != nullptr && s2.len > 0))
+                   && "Invalid second string");
+        if (s1.len != s2.len) {
+                return s1.len < s2.len ? -1 : 1;
+        }
+        if (s1.len == 0) {
+                return 0;
+        }
+        int cmp = memcmp(s1.data, s2.data, (size_t)s2.len);
+        return cmp == 0 ? 0 : (cmp < 0 ? -1 : 1);
+}
+
+bool
+gld_string_eq(GldString s1, GldString s2) {
+        return gld_string_cmp(s1, s2) == 0;
+}
+
 GldString
 gld_string_new(GldArena* a, const char* s, size_t len) {
         GLD_ASSERT(s != nullptr && "Invalid string");
@@ -220,7 +240,8 @@ gld_string_new(GldArena* a, const char* s, size_t len) {
 
 GldString
 gld_string_dup(GldArena* a, GldString s) {
-        GLD_ASSERT(s.len >= 0 && "Invalid string");
+        GLD_ASSERT(((s.data == nullptr && s.len == 0) || (s.data != nullptr && s.len > 0))
+                   && "Invalid string");
         if (s.len == 0) {
                 return (GldString){.data = nullptr, .len = 0};
         }
@@ -238,7 +259,8 @@ gld_string_fmt(GldArena* a, const char* fmt, ...) {
         GLD_ASSERT(len >= 0 && "Invalid format string");
 
         va_start(args, fmt);
-        GldString res = {.data = allocn(a, char, (size_t)len), .len = len};
+        GldString res = {.data = gld_allocn(a, char, (size_t)len + 1), .len = len};
+        --a->len;
         vsnprintf(res.data, (size_t)len + 1, fmt, args);
         va_end(args);
         return res;
