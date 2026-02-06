@@ -106,10 +106,10 @@ GLD_API void gld_arena_mark_end(GldArenaMark m);
 #define arena_mark_end   gld_arena_mark_end
 #endif // GLADIUS_PREFIXED
 
-// CharSet Declaration -----------------------------------------------------------------------------
+// CharClass Declaration ---------------------------------------------------------------------------
 
-// ASCII character set
-typedef bool GldCharSet[UCHAR_MAX + 1];
+// ASCII character class
+typedef bool GldCharClass[UCHAR_MAX + 1];
 
 #define GLD_DIGIT  "0123456789"
 #define GLD_XDIGIT "0123456789abcdefABCDEF"
@@ -121,17 +121,24 @@ typedef bool GldCharSet[UCHAR_MAX + 1];
 #define GLD_SPACE  " \t\n\r\v\f"
 #define GLD_PUNCT  "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
+[[nodiscard]] GLD_API GldCharClass* gld_char_class_new(GldArena* a, const char* chars);
+[[nodiscard]] GLD_API GldCharClass* gld_char_class_not(GldArena* a, const char* chars);
+#define gld_cc_in(cc, c) ((*cc)[(unsigned char)(c)])
+
 #ifndef GLADIUS_PREFIXED
-#define CharSet GldCharSet
-#define DIGIT   GLD_DIGIT
-#define XDIGIT  GLD_XDIGIT
-#define LOWER   GLD_LOWER
-#define UPPER   GLD_UPPER
-#define ALPHA   GLD_ALPHA
-#define ALNUM   GLD_ALNUM
-#define WORD    GLD_WORD
-#define SPACE   GLD_SPACE
-#define PUNCT   GLD_PUNCT
+#define CharClass      GldCharClass
+#define DIGIT          GLD_DIGIT
+#define XDIGIT         GLD_XDIGIT
+#define LOWER          GLD_LOWER
+#define UPPER          GLD_UPPER
+#define ALPHA          GLD_ALPHA
+#define ALNUM          GLD_ALNUM
+#define WORD           GLD_WORD
+#define SPACE          GLD_SPACE
+#define PUNCT          GLD_PUNCT
+#define char_class_new gld_char_class_new
+#define char_class_not gld_char_class_not
+#define cc_in          gld_cc_in
 #endif // GLADIUS_PREFIXED
 
 // String Declaration ------------------------------------------------------------------------------
@@ -232,7 +239,7 @@ gld_arena_mark_end(GldArenaMark m) {
         m.a->len = m.len;
 }
 
-// CharSet Definition ------------------------------------------------------------------------------
+// CharClass Definition ----------------------------------------------------------------------------
 
 // String Definition -------------------------------------------------------------------------------
 
