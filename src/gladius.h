@@ -106,6 +106,34 @@ GLD_API void gld_arena_mark_end(GldArenaMark m);
 #define arena_mark_end   gld_arena_mark_end
 #endif // GLADIUS_PREFIXED
 
+// CharSet Declaration -----------------------------------------------------------------------------
+
+// ASCII character set
+typedef bool GldCharSet[UCHAR_MAX + 1];
+
+#define GLD_DIGIT  "0123456789"
+#define GLD_XDIGIT "0123456789abcdefABCDEF"
+#define GLD_LOWER  "abcdefghijklmnopqrstuvwxyz"
+#define GLD_UPPER  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+#define GLD_ALPHA  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+#define GLD_ALNUM  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+#define GLD_WORD   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+#define GLD_SPACE  " \t\n\r\v\f"
+#define GLD_PUNCT  "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+
+#ifndef GLADIUS_PREFIXED
+#define CharSet GldCharSet
+#define DIGIT   GLD_DIGIT
+#define XDIGIT  GLD_XDIGIT
+#define LOWER   GLD_LOWER
+#define UPPER   GLD_UPPER
+#define ALPHA   GLD_ALPHA
+#define ALNUM   GLD_ALNUM
+#define WORD    GLD_WORD
+#define SPACE   GLD_SPACE
+#define PUNCT   GLD_PUNCT
+#endif // GLADIUS_PREFIXED
+
 // String Declaration ------------------------------------------------------------------------------
 
 // Arena-owned string (no null terminator)
@@ -203,6 +231,8 @@ gld_arena_mark_end(GldArenaMark m) {
         GLD_ASSERT(m.a != nullptr && m.len <= m.a->cap && "Invalid arena mark");
         m.a->len = m.len;
 }
+
+// CharSet Definition ------------------------------------------------------------------------------
 
 // String Definition -------------------------------------------------------------------------------
 
