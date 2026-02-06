@@ -23,10 +23,8 @@ void
 test_string(Arena* a) {
         printf("Author: " PRIString "\n", FMTString(SL("Egor Afanasin")));
 
-        String empty = {0}, s;
         String hello = SL("hello, world!"), Hello = SL("Hello, World!");
         String l = SL("l"), W = SL("W");
-
         assert(string_cmp(Hello, hello) == -1 && "string_cmp");
         assert(string_cmp(l, W) == 1 && "string_cmp");
 
@@ -42,6 +40,9 @@ test_string(Arena* a) {
         assert(before + (size_t)s.len == a->len && string_eq(s, desc) && "string_dup");
 
         assert(string_eq(hello, string_fmt(a, "%s, %s!", "hello", "world")) && "string_fmt");
+
+        String file = string_read_file(a, "LICENSE");
+        assert(file.len == 1070 && "string_read_file");
 }
 
 int

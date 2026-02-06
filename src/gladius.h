@@ -262,6 +262,27 @@ gld_string_fmt(GldArena* a, const char* fmt, ...) {
         return res;
 }
 
+GldString
+gld_string_read_file(GldArena* a, const char* path) {
+        GLD_ASSERT(path != nullptr && "Invalid path");
+        FILE* file = fopen(path, "rb");
+        GLD_ASSERT(file != nullptr && "Failed to open file");
+
+        int err = fseek(file, 0, SEEK_END);
+        GLD_ASSERT(err == 0 && "fseek failed");
+        long len = ftell(file);
+        GLD_ASSERT(len >= 0 && "ftell failed");
+        GLD_ASSERT(len <= INT_MAX && "File is too big");
+        rewind(file);
+
+        char* data = gld_allocn(a, char, (size_t)len);
+        size_t read = fread(data, sizeof(char), (size_t)len, file);
+        GLD_ASSERT(read == (size_t)len && "fread failed");
+        err = fclose(file);
+        GLD_ASSERT(err == 0 && "fclose failed");
+        return (GldString){.data = data, .len = (int)len};
+}
+
 #endif // GLADIUS_IMPLEMENTATION
 
 #endif // GLADIUS_HEADER
