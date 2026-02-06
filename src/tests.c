@@ -7,6 +7,7 @@ test_arena(Arena* a) {
         int8_t* arr = allocn(a, int8_t, 3);
         arr[0] = arr[1] = arr[2] = -3;
         (void)alloc(a, uint64_t);
+        assert(allocn(a, long, 0) != nullptr && "arena_alloc");
         assert(*arr == -3 && a->len == 2 * 8 && "arena_alloc");
 
         arena_reset(a);
@@ -29,6 +30,7 @@ test_string(Arena* a) {
         assert(string_cmp(Hello, hello) == -1 && "string_cmp");
         assert(string_cmp(l, W) == 1 && "string_cmp");
 
+        String empty = {0}, s;
         assert(string_eq(empty, empty) && "string_eq");
 
         size_t before = a->len;
