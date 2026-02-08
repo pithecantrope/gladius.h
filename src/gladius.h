@@ -169,6 +169,7 @@ typedef struct {
 #endif
 [[nodiscard]] GLD_API GldString gld_string_fmt(GldArena* a, const char* fmt, ...);
 [[nodiscard]] GLD_API GldString gld_string_read_file(GldArena* a, const char* path);
+[[nodiscard]] GLD_API GldString gld_string_slice(GldString s, int start, int stop);
 
 #ifndef GLADIUS_PREFIXED
 #define String           GldString
@@ -182,6 +183,7 @@ typedef struct {
 #define string_dup       gld_string_dup
 #define string_fmt       gld_string_fmt
 #define string_read_file gld_string_read_file
+#define string_slice     gld_string_slice
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
@@ -318,6 +320,15 @@ gld_string_read_file(GldArena* a, const char* path) {
         err = fclose(file);
         GLD_ASSERT(err == 0 && "fclose failed");
         return (GldString){.data = data, .len = (int)len};
+}
+
+GldString
+gld_string_slice(GldString s, int start, int stop) {
+        GLD_ASSERT(s.len >= 0 && "Invalid string");
+        GLD_ASSERT(0 <= start && 0 <= stop && "Negative indexes");
+        GLD_ASSERT(start <= stop && "start > stop");
+        GLD_ASSERT(stop <= s.len && "Index out of bounds");
+        return (GldString){.data = s.data + start, .len = stop - start};
 }
 
 #endif // GLADIUS_IMPLEMENTATION

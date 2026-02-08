@@ -21,14 +21,15 @@ test_arena(Arena* a) {
 
 void
 test_string(Arena* a) {
-        printf("Author: " PRIString "\n", FMTString(SL("Egor Afanasin")));
+        String author = SL("Egor Afanasin");
+        printf("Author: " PRIString "\n", FMTString(author));
 
         String hello = SL("hello, world!"), Hello = SL("Hello, World!");
         String l = SL("l"), W = SL("W");
         assert(string_cmp(Hello, hello) == -1 && "string_cmp");
         assert(string_cmp(l, W) == 1 && "string_cmp");
 
-        String empty = {0}, s;
+        String empty = SA(a, ""), s;
         assert(string_eq(empty, empty) && "string_eq");
 
         size_t before = a->len;
@@ -42,7 +43,15 @@ test_string(Arena* a) {
         assert(string_eq(hello, string_fmt(a, "%s, %s!", "hello", "world")) && "string_fmt");
 
         String file = string_read_file(a, "LICENSE");
-        assert(file.len == 1070 && "string_read_file");
+        int lines = 1;
+        for (int i = 0; i < file.len; ++i) {
+                if (file.data[i] == '\n') {
+                        ++lines;
+                }
+        }
+        assert(lines == 22 && "string_read_file");
+
+        assert(string_eq(author, string_slice(file, 32, 45)) && "string_slice");
 }
 
 int
