@@ -1,6 +1,6 @@
 /* gladius.h - v0.0.0 - MIT - https://github.com/pithecantrope/gladius.h
  *
- * Arena Allocation, Sharpened.
+ * Gladius: C, Sharpened.
  *
  * About:
  *      Header-only C23 arena-owned containers.
@@ -70,11 +70,12 @@ typedef struct {
 #define GLD_MiB(x)      ((size_t)(x) << 20)
 #define GLD_GiB(x)      ((size_t)(x) << 30)
 
+// Use `KiB`, `MiB` or `GiB` for capacity
 [[nodiscard]] GLD_API GldArena* gld_arena_create(size_t capacity);
 GLD_API void gld_arena_reset(GldArena* a);
 GLD_API void gld_arena_destroy(GldArena* a);
 
-// Use `gld_alloc` and `gld_allocn` macros instead!
+// Use `alloc` and `allocn` macros instead! Zero count is valid
 GLD_API void* gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align);
 #define gld_alloc(a, type)       (type*)gld_arena_alloc(a, 1, sizeof(type), alignof(type))
 #define gld_allocn(a, type, num) (type*)gld_arena_alloc(a, num, sizeof(type), alignof(type))
@@ -108,7 +109,7 @@ GLD_API void gld_arena_mark_end(GldArenaMark m);
 
 // CharClass Declaration ---------------------------------------------------------------------------
 
-// ASCII character class
+// ASCII character classification
 typedef bool GldCharClass[UCHAR_MAX + 1];
 
 #define GLD_DIGIT  "0123456789"
@@ -123,7 +124,8 @@ typedef bool GldCharClass[UCHAR_MAX + 1];
 
 [[nodiscard]] GLD_API GldCharClass* gld_char_class_new(GldArena* a, const char* chars);
 [[nodiscard]] GLD_API GldCharClass* gld_char_class_not(GldArena* a, const char* chars);
-#define gld_cc_in(cc, c) ((*cc)[(unsigned char)(c)])
+// Is character `c` in class `cc`
+#define gld_cc_in(c, cc) ((*cc)[(unsigned char)(c)])
 
 #ifndef GLADIUS_PREFIXED
 #define CharClass      GldCharClass
@@ -143,7 +145,7 @@ typedef bool GldCharClass[UCHAR_MAX + 1];
 
 // String Declaration ------------------------------------------------------------------------------
 
-// Arena-owned string (no null terminator)
+// Arena-owned string without null terminator
 typedef struct {
         char* data;
         int len;
@@ -153,6 +155,7 @@ typedef struct {
 #define GLD_PRIString    "{data:%.*s, len:%d}"
 #define GLD_FMTString(s) (s).len, (s).data, (s).len
 
+// Returns exactly -1, 0 or 1
 [[nodiscard]] GLD_API int gld_string_cmp(GldString s1, GldString s2);
 [[nodiscard]] GLD_API bool gld_string_eq(GldString s1, GldString s2);
 
@@ -169,6 +172,7 @@ typedef struct {
 #endif
 [[nodiscard]] GLD_API GldString gld_string_fmt(GldArena* a, const char* fmt, ...);
 [[nodiscard]] GLD_API GldString gld_string_read_file(GldArena* a, const char* path);
+// [start, stop)
 [[nodiscard]] GLD_API GldString gld_string_slice(GldString s, int start, int stop);
 
 #ifndef GLADIUS_PREFIXED
@@ -243,6 +247,29 @@ gld_arena_mark_end(GldArenaMark m) {
 
 // CharClass Definition ----------------------------------------------------------------------------
 
+//
+GldCharClass*
+gld_char_class_new(GldArena* a, const char* chars) {
+        GLD_ASSERT(chars != nullptr && "Invalid characters");
+        GldCharClass* cc = gld_alloc(a, GldCharClass);
+        memset(cc, false, sizeof(*cc));
+        for (const char* p = chars; *p != '\0'; ++p) {
+                unsigned char c = (unsigned char)*p;
+                GLD_ASSERT(c < 128 && "Non-ASCII character");
+                (*cc)[c] = true;
+        }
+        return cc;
+}
+
+GldCharClass*
+gld_char_class_not(GldArena* a, const char* chars) {
+        GldCharClass* cc = gld_char_class_new(a, chars);
+        for (size_t i = 0; i <= UCHAR_MAX; ++i) {
+                (*cc)[i] = !(*cc)[i];
+        }
+        return cc;
+}
+
 // String Definition -------------------------------------------------------------------------------
 
 //
@@ -268,7 +295,7 @@ gld_string_eq(GldString s1, GldString s2) {
 GldString
 gld_string_new(GldArena* a, const char* s, size_t len) {
         GLD_ASSERT(s != nullptr && "Invalid string");
-        GLD_ASSERT(len <= INT_MAX && "Invalid len");
+        GLD_ASSERT(len <= INT_MAX && "Length is too big");
         GldString res = {.data = gld_allocn(a, char, len), .len = (int)len};
         memcpy(res.data, s, len);
         return res;
