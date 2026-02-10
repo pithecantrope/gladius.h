@@ -119,28 +119,26 @@ typedef bool GldCharClass[UCHAR_MAX + 1];
 #define GLD_ALPHA  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #define GLD_ALNUM  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #define GLD_WORD   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-#define GLD_SPACE  " \t\n\r\v\f"
+#define GLD_SPACE  " \t\n\r\f\v"
 #define GLD_PUNCT  "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
-[[nodiscard]] GLD_API GldCharClass* gld_char_class_new(GldArena* a, const char* chars);
-[[nodiscard]] GLD_API GldCharClass* gld_char_class_not(GldArena* a, const char* chars);
+[[nodiscard]] GLD_API GldCharClass* gld_charclass(GldArena* a, const char* chars);
 // Is character `c` in class `cc`
 #define gld_cc_in(c, cc) ((*cc)[(unsigned char)(c)])
 
 #ifndef GLADIUS_PREFIXED
-#define CharClass      GldCharClass
-#define DIGIT          GLD_DIGIT
-#define XDIGIT         GLD_XDIGIT
-#define LOWER          GLD_LOWER
-#define UPPER          GLD_UPPER
-#define ALPHA          GLD_ALPHA
-#define ALNUM          GLD_ALNUM
-#define WORD           GLD_WORD
-#define SPACE          GLD_SPACE
-#define PUNCT          GLD_PUNCT
-#define char_class_new gld_char_class_new
-#define char_class_not gld_char_class_not
-#define cc_in          gld_cc_in
+#define CharClass GldCharClass
+#define DIGIT     GLD_DIGIT
+#define XDIGIT    GLD_XDIGIT
+#define LOWER     GLD_LOWER
+#define UPPER     GLD_UPPER
+#define ALPHA     GLD_ALPHA
+#define ALNUM     GLD_ALNUM
+#define WORD      GLD_WORD
+#define SPACE     GLD_SPACE
+#define PUNCT     GLD_PUNCT
+#define charclass gld_charclass
+#define cc_in     gld_cc_in
 #endif // GLADIUS_PREFIXED
 
 // String Declaration ------------------------------------------------------------------------------
@@ -157,7 +155,7 @@ typedef struct {
 
 // Returns exactly -1, 0 or 1
 [[nodiscard]] GLD_API int gld_string_cmp(GldString s1, GldString s2);
-[[nodiscard]] GLD_API bool gld_string_eq(GldString s1, GldString s2);
+#define gld_string_eq(s1, s2) (gld_string_cmp(s1, s2) == 0)
 
 // Read-only
 #define GLD_SL(literal)                                                                            \
@@ -249,7 +247,7 @@ gld_arena_mark_end(GldArenaMark m) {
 
 //
 GldCharClass*
-gld_char_class_new(GldArena* a, const char* chars) {
+gld_charclass(GldArena* a, const char* chars) {
         GLD_ASSERT(chars != nullptr && "Invalid characters");
         GldCharClass* cc = gld_alloc(a, GldCharClass);
         memset(cc, false, sizeof(*cc));
@@ -257,15 +255,6 @@ gld_char_class_new(GldArena* a, const char* chars) {
                 unsigned char c = (unsigned char)*p;
                 GLD_ASSERT(c < 128 && "Non-ASCII character");
                 (*cc)[c] = true;
-        }
-        return cc;
-}
-
-GldCharClass*
-gld_char_class_not(GldArena* a, const char* chars) {
-        GldCharClass* cc = gld_char_class_new(a, chars);
-        for (size_t i = 0; i <= UCHAR_MAX; ++i) {
-                (*cc)[i] = !(*cc)[i];
         }
         return cc;
 }
@@ -285,11 +274,6 @@ gld_string_cmp(GldString s1, GldString s2) {
         }
         int cmp = memcmp(s1.data, s2.data, (size_t)s2.len);
         return cmp == 0 ? 0 : (cmp < 0 ? -1 : 1);
-}
-
-bool
-gld_string_eq(GldString s1, GldString s2) {
-        return gld_string_cmp(s1, s2) == 0;
 }
 
 GldString
