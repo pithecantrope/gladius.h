@@ -20,6 +20,37 @@ test_arena(Arena* a) {
 }
 
 void
+test_charclass(Arena* a) {
+        String file = SL("He110 W0r1d fr0m 2026!");
+        CharClass* word = charclass(a, WORD);
+        CharClass* digit = charclass(a, DIGIT);
+        // \b\d+\b
+        String digits = {0};
+        for (int i = 0; i < file.len; ++i) {
+                int len, start;
+
+                start = i;
+                // \b
+                if (i > 0 && cc_in(file.data[i - 1], word)) {
+                        continue;
+                }
+                // (\d+)
+                for (len = 0; i < file.len && cc_in(file.data[i], digit); ++i, ++len) {}
+                if (len == 0) {
+                        continue;
+                }
+                // \b
+                if (i < file.len && cc_in(file.data[i], word)) {
+                        continue;
+                }
+
+                digits = string_slice(file, start, i);
+                break;
+        }
+        assert(string_eq(digits, SL("2026")) && "CharClass");
+}
+
+void
 test_string(Arena* a) {
         String author = SL("Egor Afanasin");
         printf("Author: " PRIString "\n", FMTString(author));
@@ -59,6 +90,7 @@ main(void) {
         Arena* a = arena_create(KiB(16)); // MiB, GiB
 
         test_arena(a);
+        test_charclass(a);
         test_string(a);
         printf("Arena: " PRIArena "\n", FMTArena(a));
         printf("\n\033[32mAll tests have been passed!\033[0m\n");
