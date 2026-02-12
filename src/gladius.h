@@ -165,6 +165,8 @@ typedef struct {
 
 [[nodiscard]] GLD_API GldString gld_string_new(GldArena* a, const char* s, size_t len);
 [[nodiscard]] GLD_API GldString gld_string_dup(GldArena* a, GldString s);
+// left+right, extends left if contiguous
+GLD_API GldString gld_string_cat(GldArena* a, GldString left, GldString right);
 #if __has_c_attribute(gnu::format)
 [[gnu::format(printf, 2, 3)]]
 #endif
@@ -183,6 +185,7 @@ typedef struct {
 #define SA               GLD_SA
 #define string_new       gld_string_new
 #define string_dup       gld_string_dup
+#define string_cat       gld_string_cat
 #define string_fmt       gld_string_fmt
 #define string_read_file gld_string_read_file
 #define string_slice     gld_string_slice
@@ -212,7 +215,6 @@ void
 gld_arena_destroy(GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap && "Invalid arena");
         GLD_FREE(a->buf);
-        *a = (GldArena){0};
         GLD_FREE(a);
 }
 
@@ -294,6 +296,26 @@ gld_string_dup(GldArena* a, GldString s) {
         GldString res = {.data = gld_allocn(a, char, (size_t)s.len), .len = s.len};
         memcpy(res.data, s.data, (size_t)s.len);
         return res;
+}
+
+GldString
+gld_string_cat(GldArena* a, GldString left, GldString right) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap && "Invalid arena");
+        GLD_ASSERT(left.len >= 0 && "Invalid left string");
+        GLD_ASSERT(right.len >= 0 && "Invalid right string");
+        GLD_ASSERT(left.len <= INT_MAX - right.len && "Result string is too big");
+        // [arena...[s1][s2]...]
+        if (left.data + left.len == right.data && right.data + right.len <= a->buf + a->len) {
+                left.len += right.len;
+                return left;
+        }
+        // [arena...[s1]]...[s2]
+        if (left.data + left.len != a->buf + a->len) {
+                left = gld_string_dup(a, left);
+        }
+        // [arena]...[s1]...[s2]
+        left.len += gld_string_dup(a, right).len;
+        return left;
 }
 
 GldString

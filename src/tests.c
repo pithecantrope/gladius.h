@@ -83,6 +83,12 @@ test_string(Arena* a) {
         assert(lines == 22 && "string_read_file");
 
         assert(string_eq(author, string_slice(file, 32, 45)) && "string_slice");
+
+        String W1 = SA(a, "W"), W2 = SA(a, "W"), W3 = SA(a, "W");
+        before = a->len;
+        s = string_cat(a, W2, W3);
+        s = string_cat(a, s, W1);
+        assert(before + 1 == a->len && "string_cat");
 }
 
 int
