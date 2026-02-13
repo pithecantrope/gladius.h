@@ -1,11 +1,18 @@
 # gladius.h
+Header-only C23 arena-owned containers.
 
-> A blade forged for the Arena - not of combat, but of code: where objects sharing a lifetime are grouped and freed with a single blow.
+> *Gladius - The Sword of Arena Allocation.*
 
- * About:
- *
+### Features
+- No manual memory management. Arena owns everything
+- Zero leaks. Fail fast on errors
+- Leaking memory is impossible. Allocations die with their arena
+- Modern, user friendly, type safe and blazingly fast
+- Asserts for error handling. No return values need checking.
+- **Python**'s comfort, **C**'s performance
+
 ## Usage
-In **one** `.c` file:
+In exactly one `.c` file:
 ```c
 #define GLADIUS_IMPLEMENTATION
 #include "gladius.h"
@@ -16,29 +23,28 @@ Elsewhere:
 #include "gladius.h"
 ```
 
-## Customization
-Define before including:
-- GLADIUS_PREFIXED : disable short aliases (e.g., 'arena' → 'gladius_arena') 
-- GLADIUS_API      : function declaration prefix (default: extern)
+## Arena
+Linear allocator with fixed capacity.
+```c
+Arena* a = arena_create(KiB(16)); // MiB, GiB
+        
+int8_t* arr = allocn(a, int8_t, 3);
+arr[0] = arr[1] = arr[2] = -3;
+(void)alloc(a, uint64_t);
+assert(*arr == -3 && a->len == 2 * 8 && "arena_alloc");
 
-## Note
-- Uses `assert` for error handling. No return values need checking.
+arena_reset(a);
+assert(a->len == 0 && "arena_reset");
 
- Header only C23 containers backed by arena.  * Containers (String, Vector, Hashmap) do not own their data □~@~T the arena does.
- * This eliminates manual memory management and makes leaks impossible.
+ArenaMark m = arena_mark_begin(a);
+a->len += KiB(1);
+arena_mark_end(m);
+assert(a->len == 0 && "arena_mark");
 
- * Since the arena must be explicitly provided to each allocation function,
- * callers are forced to consider object lifetime from the start □~@~T making it
- * trivial to track where allocations occur and who owns them.
- *
- * Because allocations are simple pointer bumps inside a lifetime-bound
- * memory region, it is significantly faster than traditional malloc/free.
- *
- *          |   - Arena: linear allocator with fixed capacity, bound to a lifetime.   |
- *          |   - Containers (String, Vector, Map) do NOT own data — the arena does.  |
- *          |   - No malloc/free per object → faster, no leaks, no manual cleanup.    |
- *          |   - Explicit arena passing forces lifetime awareness at every call.     |
+printf("Arena: " PRIArena "\n", FMTArena(a));
+arena_destroy(a);
+```
 
- ## Special thanks
- - https://github.com/tsoding/nob.h
- - https://nullprogram.com
+## Thanks
+- https://github.com/tsoding/nob.h
+- https://nullprogram.com
