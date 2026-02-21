@@ -13,9 +13,12 @@
  *              #include "gladius.h"
  *
  * Note:
+ *      - Tests are in-place for reference. TODO: First is declaration
  *      - Asserts for error handling. No return values need checking.
  *      - Short aliases by default. Define GLADIUS_PREFIXED to disable.
 */
+
+// TODO: zed settings
 
 #ifndef GLADIUS_HEADER
 #define GLADIUS_HEADER
@@ -34,6 +37,7 @@
 #ifndef GLD_ASSERT
 #include <assert.h>
 #define GLD_ASSERT assert
+// TODO: #define GLD_ASSERT(condition, message) assert(condition && message)
 #endif // GLD_ASSERT
 
 #ifndef GLD_MALLOC
@@ -46,6 +50,8 @@
 #define GLD_FREE free
 #endif // GLD_FREE
 
+// #include <stdckdint.h>
+// TODO: maybe use ^ this instead of limits?
 #include <limits.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -74,18 +80,21 @@ typedef struct {
 [[nodiscard]] GLD_API GldArena* gld_arena_create(size_t capacity);
 GLD_API void gld_arena_reset(GldArena* a);
 GLD_API void gld_arena_destroy(GldArena* a);
+// Maybe release?
 
 // Use `alloc` and `allocn` macros instead! Zero count is valid
 GLD_API void* gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align);
 #define gld_alloc(a, type)       (type*)gld_arena_alloc(a, 1, sizeof(type), alignof(type))
 #define gld_allocn(a, type, num) (type*)gld_arena_alloc(a, num, sizeof(type), alignof(type))
 
+// What the fuck is Mark? It's a scratch!
 // Save and restore arena state
 typedef struct {
         GldArena* a;
         size_t len;
 } GldArenaMark;
 
+// Wrap it in for loop for brackets scope?
 [[nodiscard]] GLD_API GldArenaMark gld_arena_mark_begin(GldArena* a);
 GLD_API void gld_arena_mark_end(GldArenaMark m);
 
@@ -119,8 +128,11 @@ typedef bool GldCharClass[UCHAR_MAX + 1];
 #define GLD_ALPHA  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #define GLD_ALNUM  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #define GLD_WORD   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+// No ^
 #define GLD_SPACE  " \t\n\r\f\v"
+// Also No ^
 #define GLD_PUNCT  "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+// Maybe ? ^
 
 [[nodiscard]] GLD_API GldCharClass* gld_charclass(GldArena* a, const char* chars);
 // Is character `c` in class `cc`
@@ -171,9 +183,15 @@ GLD_API GldString gld_string_cat(GldArena* a, GldString left, GldString right);
 [[gnu::format(printf, 2, 3)]]
 #endif
 [[nodiscard]] GLD_API GldString gld_string_fmt(GldArena* a, const char* fmt, ...);
+
 [[nodiscard]] GLD_API GldString gld_string_read_file(GldArena* a, const char* path);
+GLD_API void gld_string_write_file(GldString s, const char* path);
+// split_lines
+// cstr
+
 // [start, stop)
 [[nodiscard]] GLD_API GldString gld_string_slice(GldString s, int start, int stop);
+// remove prefix/suffix
 
 #ifndef GLADIUS_PREFIXED
 #define String           GldString
@@ -353,6 +371,23 @@ gld_string_read_file(GldArena* a, const char* path) {
         err = fclose(file);
         GLD_ASSERT(err == 0 && "fclose failed");
         return (GldString){.data = data, .len = (int)len};
+}
+
+void
+gld_string_write_file(GldString s, const char* path) {
+        GLD_ASSERT(s.len >= 0 && "Invalid string");
+        GLD_ASSERT(path != nullptr && "Invalid path");
+        // if (s.len == 0) {
+        //         return;
+        // }
+        FILE* file = fopen(path, "wb");
+        GLD_ASSERT(file != nullptr && "Failed to open file for writing"); // for reading?
+        if (s.len > 0) {
+                size_t written = fwrite(s.data, 1, (size_t)s.len, file);
+                GLD_ASSERT(written == (size_t)s.len && "fwrite failed");
+        }
+        int err = fclose(file);
+        GLD_ASSERT(err == 0 && "fclose failed");
 }
 
 GldString
