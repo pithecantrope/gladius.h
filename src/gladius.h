@@ -1,9 +1,34 @@
 #ifndef GLADIUS_HEADER
 #define GLADIUS_HEADER
 
+#include <stdio.h>
+
+// Arena Declaration -------------------------------------------------------------------------------
+
+//
+
+#ifdef GLADIUS_TEST
+#endif // GLADIUS_TEST
+
+#ifndef GLADIUS_PREFIXED
+#endif // GLADIUS_PREFIXED
+
+#ifdef GLADIUS_TEST
+#endif // GLADIUS_TEST
+
 #ifdef GLADIUS_IMPLEMENTATION
+// Arena Definition --------------------------------------------------------------------------------
+
+//
 
 #endif // GLADIUS_IMPLEMENTATION
+
+#ifdef GLADIUS_TEST
+static void
+GLADIUS_TEST_EVERYTHING(void) {
+        printf("Hello, World\n");
+}
+#endif // GLADIUS_TEST
 
 #endif // GLADIUS_HEADER
 
