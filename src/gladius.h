@@ -1,7 +1,41 @@
 #ifndef GLADIUS_HEADER
 #define GLADIUS_HEADER
 
+#ifndef GLD_API
+#define GLD_API extern
+#endif // GLD_API
+
+#ifndef GLD_ASSERT
+#include <assert.h>
+#define GLD_ASSERT(condition, message) assert((condition) && (message))
+#endif // GLD_ASSERT
+
+#ifndef GLD_MALLOC
+#define GLD_MALLOC(size) malloc(size)
+#endif // GLD_MALLOC
+
+#ifndef GLD_FREE
+#define GLD_FREE(ptr) free(ptr)
+#endif // GLD_FREE
+
 #include <stdio.h>
+#include <stdlib.h>
+
+#ifdef GLADIUS_TEST
+#define GLD_CHECK(condition)                                                                       \
+        do {                                                                                       \
+                if (!(condition)) {                                                                \
+                        fprintf(stderr,                                                            \
+                                "\033[31m"                                                         \
+                                "Failure: "                                                        \
+                                "%s:%d in %s:\n"                                                   \
+                                "\033[0m"                                                          \
+                                "\t%s\n",                                                          \
+                                __FILE__, __LINE__, __func__, #condition);                         \
+                        exit(EXIT_FAILURE);                                                        \
+                }                                                                                  \
+        } while (0)
+#endif // GLADIUS_TEST
 
 // Arena Declaration -------------------------------------------------------------------------------
 
@@ -25,8 +59,11 @@
 
 #ifdef GLADIUS_TEST
 static void
-GLADIUS_TEST_EVERYTHING(void) {
-        printf("Hello, World\n");
+GLADIUS_TEST_ALL(void) {
+        GLD_CHECK(false && "Hello, World!");
+        puts("\033[32m"
+             "Success!"
+             "\033[0m");
 }
 #endif // GLADIUS_TEST
 
