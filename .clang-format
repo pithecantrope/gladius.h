@@ -1,4 +1,4 @@
-# Based on: https://github.com/MaJerle/c-code-style/blob/main/.clang-format
+# Based on: https://github.com/MaJerle/c-code-style
 # Modifications:
 #   - Column limit set to 100
 #   - Indent width set to 8
