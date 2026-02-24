@@ -1,5 +1,31 @@
+/* gladius.h - v0.0.0 - MIT - https://github.com/pithecantrope/gladius.h
+ *
+ * Gladius: C, Sharpened.
+ *
+ * About:
+ *      Header-only C23 arena-owned containers.
+ *
+ * Usage:
+ *      In exactly one .c file:
+ *              #define GLADIUS_IMPLEMENTATION
+ *              #include "gladius.h"
+ *      Elsewhere:
+ *              #include "gladius.h"
+ *
+ * Note:
+ *      - Tests are embedded executable docs. Use them for reference.
+ *      - Short aliases by default. Define GLADIUS_PREFIXED to disable.
+ *      - Assertions for error handling. No return values need checking.
+*/
+
 #ifndef GLADIUS_HEADER
 #define GLADIUS_HEADER
+
+#if defined(__cplusplus)
+#error "Gladius does not support C++."
+#elif (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 202000L))
+#error "Gladius requires C23 or later."
+#endif
 
 #ifndef GLD_API
 #define GLD_API extern
@@ -27,10 +53,10 @@
                 if (!(condition)) {                                                                \
                         fprintf(stderr,                                                            \
                                 "\033[31m"                                                         \
-                                "Failure: "                                                        \
-                                "%s:%d in %s:\n"                                                   \
-                                "\033[0m"                                                          \
-                                "\t%s\n",                                                          \
+                                "Failure: %s:%d in %s:\n"                                          \
+                                "\033[34m"                                                         \
+                                "\t%s\n"                                                           \
+                                "\033[0m",                                                         \
                                 __FILE__, __LINE__, __func__, #condition);                         \
                         exit(EXIT_FAILURE);                                                        \
                 }                                                                                  \

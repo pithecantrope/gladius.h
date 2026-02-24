@@ -4,6 +4,8 @@ Header-only C23 arena-owned containers.
 > *Gladius - The Sword of Arena Allocation.*
 
 ### Features
+- No hidden allocations. Zero runtime overhead. Type safety. Cache-friendly
+- There is no shared ownership, no reference counting, no implicit heap allocation behind your back
 - No manual memory management. Arena owns everything
 - Zero leaks. Fail fast on errors
 - Leaking memory is impossible. Allocations die with their arena
