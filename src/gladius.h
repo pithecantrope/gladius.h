@@ -65,12 +65,28 @@
 
 // Arena Declaration -------------------------------------------------------------------------------
 
-//
+// Linear allocator with fixed capacity
+typedef struct {
+        char* buf;
+        size_t len;
+        size_t cap;
+} GldArena;
+
+GLD_API void gld_arena_println(GldArena* a);
+
+#define GLD_KiB(x) ((size_t)(x) << 10)
+#define GLD_MiB(x) ((size_t)(x) << 20)
+#define GLD_GiB(x) ((size_t)(x) << 30)
 
 #ifdef GLADIUS_TEST
 #endif // GLADIUS_TEST
 
 #ifndef GLADIUS_PREFIXED
+#define Arena         GldArena
+#define arena_println gld_arena_println
+#define KiB           GLD_KiB
+#define MiB           GLD_MiB
+#define GiB           GLD_GiB
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_TEST
@@ -80,6 +96,11 @@
 // Arena Definition --------------------------------------------------------------------------------
 
 //
+void
+gld_arena_println(GldArena* a) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
+        printf("{buf:%p, len:%zu, cap:%zu}\n", a->buf, a->len, a->cap);
+}
 
 #endif // GLADIUS_IMPLEMENTATION
 
