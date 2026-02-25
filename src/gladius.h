@@ -78,7 +78,25 @@ GLD_API void gld_arena_println(const GldArena* a);
 #define GLD_MiB(x) ((size_t)(x) << 20)
 #define GLD_GiB(x) ((size_t)(x) << 30)
 
+// Save and restore arena state
+typedef struct {
+        GldArena* a;
+        size_t len;
+} GldArenaScratch;
+
+[[nodiscard]] GLD_API GldArenaScratch gld_arena_scratch_begin(GldArena* a);
+GLD_API void gld_arena_scratch_end(GldArenaScratch sc);
+
+#define gld_arena_scratch(arena)                                                                   \
+        for (GldArenaScratch _sc = gld_arena_scratch_begin(arena); _sc.a;                          \
+             gld_arena_scratch_end(_sc), _sc.a = nullptr)
 #ifdef GLADIUS_TEST
+static void
+_gld_test_arena_scratch(GldArena* a) {
+        size_t before = a->len;
+        gld_arena_scratch(a) { a->len += GLD_KiB(1); }
+        GLD_CHECK(before == a->len);
+}
 #endif // GLADIUS_TEST
 
 #ifndef GLADIUS_PREFIXED
@@ -107,6 +125,18 @@ void
 gld_arena_println(const GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
         printf("{buf:%p, len:%zu, cap:%zu}\n", a->buf, a->len, a->cap);
+}
+
+GldArenaScratch
+gld_arena_scratch_begin(GldArena* a) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
+        return (GldArenaScratch){.a = a, .len = a->len};
+}
+
+void
+gld_arena_scratch_end(GldArenaScratch sc) {
+        GLD_ASSERT(sc.a != nullptr && sc.len <= sc.a->cap, "Invalid scratch Arena");
+        sc.a->len = sc.len;
 }
 
 #endif // GLADIUS_IMPLEMENTATION
