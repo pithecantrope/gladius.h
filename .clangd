@@ -1,4 +1,4 @@
 If:
     PathMatch: src/gladius.h$
 CompileFlags:
-    Add: [-DGLADIUS_IMPLEMENTATION]
+    Add: [-DGLADIUS_IMPLEMENTATION, -DGLADIUS_TEST]

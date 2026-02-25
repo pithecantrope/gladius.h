@@ -72,7 +72,7 @@ typedef struct {
         size_t cap;
 } GldArena;
 
-GLD_API void gld_arena_println(GldArena* a);
+GLD_API void gld_arena_println(const GldArena* a);
 
 #define GLD_KiB(x) ((size_t)(x) << 10)
 #define GLD_MiB(x) ((size_t)(x) << 20)
@@ -82,14 +82,21 @@ GLD_API void gld_arena_println(GldArena* a);
 #endif // GLADIUS_TEST
 
 #ifndef GLADIUS_PREFIXED
-#define Arena         GldArena
-#define arena_println gld_arena_println
-#define KiB           GLD_KiB
-#define MiB           GLD_MiB
-#define GiB           GLD_GiB
+#define Arena               GldArena
+#define arena_println       gld_arena_println
+#define KiB                 GLD_KiB
+#define MiB                 GLD_MiB
+#define GiB                 GLD_GiB
+#define arena_scratch_begin gld_arena_scratch_begin
+#define arena_scratch_end   gld_arena_scratch_end
+#define arena_scratch       gld_arena_scratch
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_TEST
+static void
+_gld_test_arena(GldArena* a) {
+        _gld_test_arena_scratch(a);
+}
 #endif // GLADIUS_TEST
 
 #ifdef GLADIUS_IMPLEMENTATION
@@ -97,7 +104,7 @@ GLD_API void gld_arena_println(GldArena* a);
 
 //
 void
-gld_arena_println(GldArena* a) {
+gld_arena_println(const GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
         printf("{buf:%p, len:%zu, cap:%zu}\n", a->buf, a->len, a->cap);
 }
@@ -105,12 +112,16 @@ gld_arena_println(GldArena* a) {
 #endif // GLADIUS_IMPLEMENTATION
 
 #ifdef GLADIUS_TEST
-static void
+[[maybe_unused]] static void
 GLADIUS_TEST_ALL(void) {
-        GLD_CHECK(false && "Hello, World!");
+        GldArena a = {.buf = malloc(GLD_MiB(1)), .len = 0, .cap = GLD_MiB(1)};
+
+        _gld_test_arena(&a);
+
         puts("\033[32m"
              "Success!"
              "\033[0m");
+        free(a.buf);
 }
 #endif // GLADIUS_TEST
 
