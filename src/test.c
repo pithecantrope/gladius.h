@@ -9,6 +9,6 @@
 
 int
 main(void) {
-        GLADIUS_TEST_ALL();
+        test();
         return 0;
 }

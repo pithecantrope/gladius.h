@@ -92,7 +92,7 @@ GLD_API void gld_arena_scratch_end(GldArenaScratch sc);
              gld_arena_scratch_end(_sc), _sc.a = nullptr)
 #ifdef GLADIUS_TEST
 static void
-_gld_test_arena_scratch(GldArena* a) {
+test_arena_scratch(GldArena* a) {
         size_t before = a->len;
         gld_arena_scratch(a) { a->len += GLD_KiB(1); }
         GLD_CHECK(before == a->len);
@@ -112,8 +112,8 @@ _gld_test_arena_scratch(GldArena* a) {
 
 #ifdef GLADIUS_TEST
 static void
-_gld_test_arena(GldArena* a) {
-        _gld_test_arena_scratch(a);
+test_arena(GldArena* a) {
+        test_arena_scratch(a);
 }
 #endif // GLADIUS_TEST
 
@@ -143,10 +143,10 @@ gld_arena_scratch_end(GldArenaScratch sc) {
 
 #ifdef GLADIUS_TEST
 [[maybe_unused]] static void
-GLADIUS_TEST_ALL(void) {
+test(void) {
         GldArena a = {.buf = malloc(GLD_MiB(1)), .len = 0, .cap = GLD_MiB(1)};
 
-        _gld_test_arena(&a);
+        test_arena(&a);
 
         puts("\033[32m"
              "Success!"
