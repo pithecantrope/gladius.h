@@ -91,18 +91,9 @@ typedef struct {
 
 [[nodiscard]] GLD_API GldArenaScratch gld_arena_scratch_begin(GldArena* a);
 GLD_API void gld_arena_scratch_end(GldArenaScratch sc);
-
 #define gld_arena_scratch(arena)                                                                   \
         for (GldArenaScratch _sc = gld_arena_scratch_begin(arena); _sc.a;                          \
              gld_arena_scratch_end(_sc), _sc.a = nullptr)
-#ifdef GLADIUS_TEST
-static void
-test_arena_scratch(GldArena* a) {
-        size_t before = a->len;
-        gld_arena_scratch(a) { a->len += GLD_KiB(1); }
-        GLD_CHECK(before == a->len);
-}
-#endif // GLADIUS_TEST
 
 #ifndef GLADIUS_PREFIXED
 #define Arena               GldArena
@@ -119,17 +110,31 @@ test_arena_scratch(GldArena* a) {
 #define arena_scratch       gld_arena_scratch
 #endif // GLADIUS_PREFIXED
 
+// Arena Test --------------------------------------------------------------------------------------
 #ifdef GLADIUS_TEST
 static void
-test_arena(GldArena* a) {
+test_arena_reset(Arena* a) {
+        a->len = MiB(1);
+        arena_reset(a);
+        GLD_CHECK(a->len == 0);
+}
+
+static void
+test_arena_scratch(Arena* a) {
+        size_t before = a->len;
+        arena_scratch(a) { a->len += KiB(1); }
+        GLD_CHECK(before == a->len);
+}
+
+static void
+test_arena(Arena* a) {
+        test_arena_reset(a);
         test_arena_scratch(a);
 }
 #endif // GLADIUS_TEST
 
-#ifdef GLADIUS_IMPLEMENTATION
 // Arena Definition --------------------------------------------------------------------------------
-
-//
+#ifdef GLADIUS_IMPLEMENTATION
 void
 gld_arena_println(const GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
@@ -170,19 +175,16 @@ gld_arena_scratch_end(GldArenaScratch sc) {
         GLD_ASSERT(sc.a != nullptr && sc.len <= sc.a->cap, "Invalid scratch Arena");
         sc.a->len = sc.len;
 }
-
 #endif // GLADIUS_IMPLEMENTATION
 
 #ifdef GLADIUS_TEST
 [[maybe_unused]] static void
 test(void) {
-        GldArena* a = gld_arena_create(GLD_MiB(1));
+        Arena* a = arena_create(MiB(1));
         test_arena(a);
 
-        puts("\033[32m"
-             "Success!"
-             "\033[0m");
-        gld_arena_destroy(a);
+        puts("\033[32mSuccess!\033[0m");
+        arena_destroy(a);
 }
 #endif // GLADIUS_TEST
 
