@@ -78,6 +78,11 @@ GLD_API void gld_arena_println(const GldArena* a);
 #define GLD_MiB(x) ((size_t)(x) << 20)
 #define GLD_GiB(x) ((size_t)(x) << 30)
 
+// Prefer `KiB`, `MiB` or `GiB` for capacity
+[[nodiscard]] GLD_API GldArena* gld_arena_create(size_t capacity);
+GLD_API void gld_arena_reset(GldArena* a);
+GLD_API void gld_arena_destroy(GldArena* a);
+
 // Save and restore arena state
 typedef struct {
         GldArena* a;
@@ -105,6 +110,10 @@ test_arena_scratch(GldArena* a) {
 #define KiB                 GLD_KiB
 #define MiB                 GLD_MiB
 #define GiB                 GLD_GiB
+#define arena_create        gld_arena_create
+#define arena_reset         gld_arena_reset
+#define arena_destroy       gld_arena_destroy
+#define ArenaScratch        GldArenaScratch
 #define arena_scratch_begin gld_arena_scratch_begin
 #define arena_scratch_end   gld_arena_scratch_end
 #define arena_scratch       gld_arena_scratch
@@ -127,6 +136,29 @@ gld_arena_println(const GldArena* a) {
         printf("{buf:%p, len:%zu, cap:%zu}\n", a->buf, a->len, a->cap);
 }
 
+GldArena*
+gld_arena_create(size_t capacity) {
+        GLD_ASSERT(capacity > 0, "Invalid capacity");
+        GldArena* a = GLD_MALLOC(sizeof(*a));
+        GLD_ASSERT(a != nullptr, "GLD_MALLOC failed");
+        *a = (GldArena){.buf = GLD_MALLOC(capacity), .len = 0, .cap = capacity};
+        GLD_ASSERT(a->buf != nullptr, "GLD_MALLOC failed");
+        return a;
+}
+
+void
+gld_arena_reset(GldArena* a) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
+        a->len = 0;
+}
+
+void
+gld_arena_destroy(GldArena* a) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
+        GLD_FREE(a->buf);
+        GLD_FREE(a);
+}
+
 GldArenaScratch
 gld_arena_scratch_begin(GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
@@ -144,14 +176,13 @@ gld_arena_scratch_end(GldArenaScratch sc) {
 #ifdef GLADIUS_TEST
 [[maybe_unused]] static void
 test(void) {
-        GldArena a = {.buf = malloc(GLD_MiB(1)), .len = 0, .cap = GLD_MiB(1)};
-
-        test_arena(&a);
+        GldArena* a = gld_arena_create(GLD_MiB(1));
+        test_arena(a);
 
         puts("\033[32m"
              "Success!"
              "\033[0m");
-        free(a.buf);
+        gld_arena_destroy(a);
 }
 #endif // GLADIUS_TEST
 
