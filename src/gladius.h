@@ -44,6 +44,8 @@
 #define GLD_FREE(ptr) free(ptr)
 #endif // GLD_FREE
 
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -63,7 +65,7 @@
         } while (0)
 #endif // GLADIUS_TEST
 
-// Arena Declaration -------------------------------------------------------------------------------
+// Arena -------------------------------------------------------------------------------------------
 
 // Linear allocator with fixed capacity
 typedef struct {
@@ -82,6 +84,11 @@ GLD_API void gld_arena_println(const GldArena* a);
 [[nodiscard]] GLD_API GldArena* gld_arena_create(size_t capacity);
 GLD_API void gld_arena_reset(GldArena* a);
 GLD_API void gld_arena_destroy(GldArena* a);
+
+// Prefer `alloc` and `allocn` instead! Zero count is valid
+GLD_API void* gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align);
+#define gld_alloc(a, type)       (type*)gld_arena_alloc(a, 1, sizeof(type), alignof(type))
+#define gld_allocn(a, type, num) (type*)gld_arena_alloc(a, num, sizeof(type), alignof(type))
 
 // Save and restore arena state
 typedef struct {
@@ -104,19 +111,30 @@ GLD_API void gld_arena_scratch_end(GldArenaScratch sc);
 #define arena_create        gld_arena_create
 #define arena_reset         gld_arena_reset
 #define arena_destroy       gld_arena_destroy
+#define arena_alloc         gld_arena_alloc
+#define alloc               gld_alloc
+#define allocn              gld_allocn
 #define ArenaScratch        GldArenaScratch
 #define arena_scratch_begin gld_arena_scratch_begin
 #define arena_scratch_end   gld_arena_scratch_end
 #define arena_scratch       gld_arena_scratch
 #endif // GLADIUS_PREFIXED
 
-// Arena Test --------------------------------------------------------------------------------------
 #ifdef GLADIUS_TEST
 static void
 test_arena_reset(Arena* a) {
         a->len = MiB(1);
         arena_reset(a);
         GLD_CHECK(a->len == 0);
+}
+
+static void
+test_arena_alloc(Arena* a) {
+        GLD_CHECK(allocn(a, long, 0) != nullptr);
+        uint8_t* arr = allocn(a, uint8_t, 3);
+        arr[0] = arr[1] = arr[2] = 7;
+        (void)alloc(a, int32_t);
+        GLD_CHECK(*arr == 7 && a->len == 8);
 }
 
 static void
@@ -129,11 +147,11 @@ test_arena_scratch(Arena* a) {
 static void
 test_arena(Arena* a) {
         test_arena_reset(a);
+        test_arena_alloc(a);
         test_arena_scratch(a);
 }
 #endif // GLADIUS_TEST
 
-// Arena Definition --------------------------------------------------------------------------------
 #ifdef GLADIUS_IMPLEMENTATION
 void
 gld_arena_println(const GldArena* a) {
@@ -164,6 +182,21 @@ gld_arena_destroy(GldArena* a) {
         GLD_FREE(a);
 }
 
+void*
+gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align) {
+        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
+        GLD_ASSERT(size > 0, "Invalid size");
+        GLD_ASSERT((align & (align - 1)) == 0, "Invalid align");
+        GLD_ASSERT(align <= alignof(max_align_t), "Invalid align");
+
+        size_t padding = -(uintptr_t)(a->buf + a->len) & (align - 1);
+        GLD_ASSERT(a->cap - a->len >= padding, "Increase Arena capacity");
+        GLD_ASSERT(count <= (a->cap - a->len - padding) / size, "Increase Arena capacity");
+        void* ptr = a->buf + a->len + padding;
+        a->len += padding + count * size;
+        return ptr;
+}
+
 GldArenaScratch
 gld_arena_scratch_begin(GldArena* a) {
         GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
@@ -177,6 +210,8 @@ gld_arena_scratch_end(GldArenaScratch sc) {
 }
 #endif // GLADIUS_IMPLEMENTATION
 
+// String ------------------------------------------------------------------------------------------
+
 #ifdef GLADIUS_TEST
 [[maybe_unused]] static void
 test(void) {
@@ -187,7 +222,6 @@ test(void) {
         arena_destroy(a);
 }
 #endif // GLADIUS_TEST
-
 #endif // GLADIUS_HEADER
 
 /*
