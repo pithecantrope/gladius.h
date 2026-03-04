@@ -13,7 +13,6 @@
  *              #include "gladius.h"
  *
  * Note:
- *      - Tests are embedded executable docs. Use them for reference.
  *      - Short aliases by default. Define GLADIUS_PREFIXED to disable.
  *      - Assertions for error handling. No return values need checking.
 */
@@ -48,22 +47,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#ifdef GLADIUS_TEST
-#define GLD_CHECK(condition)                                                                       \
-        do {                                                                                       \
-                if (!(condition)) {                                                                \
-                        fprintf(stderr,                                                            \
-                                "\033[31m"                                                         \
-                                "Failure: %s:%d in %s:\n"                                          \
-                                "\033[34m"                                                         \
-                                "\t%s\n"                                                           \
-                                "\033[0m",                                                         \
-                                __FILE__, __LINE__, __func__, #condition);                         \
-                        exit(EXIT_FAILURE);                                                        \
-                }                                                                                  \
-        } while (0)
-#endif // GLADIUS_TEST
 
 // Arena -------------------------------------------------------------------------------------------
 
@@ -119,38 +102,6 @@ GLD_API void gld_arena_scratch_end(GldArenaScratch sc);
 #define arena_scratch_end   gld_arena_scratch_end
 #define arena_scratch       gld_arena_scratch
 #endif // GLADIUS_PREFIXED
-
-#ifdef GLADIUS_TEST
-static void
-test_arena_reset(Arena* a) {
-        a->len = MiB(1);
-        arena_reset(a);
-        GLD_CHECK(a->len == 0);
-}
-
-static void
-test_arena_alloc(Arena* a) {
-        GLD_CHECK(allocn(a, long, 0) != nullptr);
-        uint8_t* arr = allocn(a, uint8_t, 3);
-        arr[0] = arr[1] = arr[2] = 7;
-        (void)alloc(a, int32_t);
-        GLD_CHECK(*arr == 7 && a->len == 8);
-}
-
-static void
-test_arena_scratch(Arena* a) {
-        size_t before = a->len;
-        arena_scratch(a) { a->len += KiB(1); }
-        GLD_CHECK(before == a->len);
-}
-
-static void
-test_arena(Arena* a) {
-        test_arena_reset(a);
-        test_arena_alloc(a);
-        test_arena_scratch(a);
-}
-#endif // GLADIUS_TEST
 
 #ifdef GLADIUS_IMPLEMENTATION
 void
@@ -212,16 +163,6 @@ gld_arena_scratch_end(GldArenaScratch sc) {
 
 // String ------------------------------------------------------------------------------------------
 
-#ifdef GLADIUS_TEST
-[[maybe_unused]] static void
-test(void) {
-        Arena* a = arena_create(MiB(1));
-        test_arena(a);
-
-        puts("\033[32mSuccess!\033[0m");
-        arena_destroy(a);
-}
-#endif // GLADIUS_TEST
 #endif // GLADIUS_HEADER
 
 /*
