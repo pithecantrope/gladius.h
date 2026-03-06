@@ -13,8 +13,8 @@
  *              #include "gladius.h"
  *
  * Note:
+ *      - Assertions for error handling. No need to check return values.
  *      - Short aliases by default. Define GLADIUS_PREFIXED to disable.
- *      - Assertions for error handling. No return values need checking.
 */
 
 #ifndef GLADIUS_HEADER
@@ -26,14 +26,14 @@
 #error "Gladius requires C23 or later."
 #endif
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifndef GLD_API
 #define GLD_API extern
 #endif // GLD_API
-
-#ifndef GLD_ASSERT
-#include <assert.h>
-#define GLD_ASSERT(condition, message) assert((condition) && (message))
-#endif // GLD_ASSERT
 
 #ifndef GLD_MALLOC
 #define GLD_MALLOC(size) malloc(size)
@@ -43,125 +43,26 @@
 #define GLD_FREE(ptr) free(ptr)
 #endif // GLD_FREE
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef GLD_ASSERT
+#define GLD_ASSERT(condition, message)                                                             \
+        do {                                                                                       \
+                if (!(condition)) {                                                                \
+                        fprintf(stderr,                                                            \
+                                "File \"%s\", line %d, in %s\n"                                    \
+                                "%s:\n"                                                            \
+                                "\t%s\n",                                                          \
+                                __FILE__, __LINE__, __func__, message, #condition);                \
+                        exit(EXIT_FAILURE);                                                        \
+                }                                                                                  \
+        } while (0)
+#endif // GLD_ASSERT
+
+#ifdef NDEBUG
+#undef GLD_ASSERT
+#define GLD_ASSERT(condition, message) ((void)condition, (void)message)
+#endif // NDEBUG
 
 // Arena -------------------------------------------------------------------------------------------
-
-// Linear allocator with fixed capacity
-typedef struct {
-        char* buf;
-        size_t len;
-        size_t cap;
-} GldArena;
-
-GLD_API void gld_arena_println(const GldArena* a);
-
-#define GLD_KiB(x) ((size_t)(x) << 10)
-#define GLD_MiB(x) ((size_t)(x) << 20)
-#define GLD_GiB(x) ((size_t)(x) << 30)
-
-// Prefer `KiB`, `MiB` or `GiB` for capacity
-[[nodiscard]] GLD_API GldArena* gld_arena_create(size_t capacity);
-GLD_API void gld_arena_reset(GldArena* a);
-GLD_API void gld_arena_destroy(GldArena* a);
-
-// Prefer `alloc` and `allocn` instead! Zero count is valid
-GLD_API void* gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align);
-#define gld_alloc(a, type)       (type*)gld_arena_alloc(a, 1, sizeof(type), alignof(type))
-#define gld_allocn(a, type, num) (type*)gld_arena_alloc(a, num, sizeof(type), alignof(type))
-
-// Save and restore arena state
-typedef struct {
-        GldArena* a;
-        size_t len;
-} GldArenaScratch;
-
-[[nodiscard]] GLD_API GldArenaScratch gld_arena_scratch_begin(GldArena* a);
-GLD_API void gld_arena_scratch_end(GldArenaScratch sc);
-#define gld_arena_scratch(arena)                                                                   \
-        for (GldArenaScratch _sc = gld_arena_scratch_begin(arena); _sc.a;                          \
-             gld_arena_scratch_end(_sc), _sc.a = nullptr)
-
-#ifndef GLADIUS_PREFIXED
-#define Arena               GldArena
-#define arena_println       gld_arena_println
-#define KiB                 GLD_KiB
-#define MiB                 GLD_MiB
-#define GiB                 GLD_GiB
-#define arena_create        gld_arena_create
-#define arena_reset         gld_arena_reset
-#define arena_destroy       gld_arena_destroy
-#define arena_alloc         gld_arena_alloc
-#define alloc               gld_alloc
-#define allocn              gld_allocn
-#define ArenaScratch        GldArenaScratch
-#define arena_scratch_begin gld_arena_scratch_begin
-#define arena_scratch_end   gld_arena_scratch_end
-#define arena_scratch       gld_arena_scratch
-#endif // GLADIUS_PREFIXED
-
-#ifdef GLADIUS_IMPLEMENTATION
-void
-gld_arena_println(const GldArena* a) {
-        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
-        printf("{buf:%p, len:%zu, cap:%zu}\n", a->buf, a->len, a->cap);
-}
-
-GldArena*
-gld_arena_create(size_t capacity) {
-        GLD_ASSERT(capacity > 0, "Invalid capacity");
-        GldArena* a = GLD_MALLOC(sizeof(*a));
-        GLD_ASSERT(a != nullptr, "GLD_MALLOC failed");
-        *a = (GldArena){.buf = GLD_MALLOC(capacity), .len = 0, .cap = capacity};
-        GLD_ASSERT(a->buf != nullptr, "GLD_MALLOC failed");
-        return a;
-}
-
-void
-gld_arena_reset(GldArena* a) {
-        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
-        a->len = 0;
-}
-
-void
-gld_arena_destroy(GldArena* a) {
-        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
-        GLD_FREE(a->buf);
-        GLD_FREE(a);
-}
-
-void*
-gld_arena_alloc(GldArena* a, size_t count, size_t size, size_t align) {
-        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
-        GLD_ASSERT(size > 0, "Invalid size");
-        GLD_ASSERT((align & (align - 1)) == 0, "Invalid align");
-        GLD_ASSERT(align <= alignof(max_align_t), "Invalid align");
-
-        size_t padding = -(uintptr_t)(a->buf + a->len) & (align - 1);
-        GLD_ASSERT(a->cap - a->len >= padding, "Increase Arena capacity");
-        GLD_ASSERT(count <= (a->cap - a->len - padding) / size, "Increase Arena capacity");
-        void* ptr = a->buf + a->len + padding;
-        a->len += padding + count * size;
-        return ptr;
-}
-
-GldArenaScratch
-gld_arena_scratch_begin(GldArena* a) {
-        GLD_ASSERT(a != nullptr && a->buf != nullptr && a->len <= a->cap, "Invalid Arena");
-        return (GldArenaScratch){.a = a, .len = a->len};
-}
-
-void
-gld_arena_scratch_end(GldArenaScratch sc) {
-        GLD_ASSERT(sc.a != nullptr && sc.len <= sc.a->cap, "Invalid scratch Arena");
-        sc.a->len = sc.len;
-}
-#endif // GLADIUS_IMPLEMENTATION
-
-// String ------------------------------------------------------------------------------------------
 
 #endif // GLADIUS_HEADER
 
