@@ -29,6 +29,8 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #ifndef GLD_API
@@ -65,7 +67,49 @@
 
 // Arena -------------------------------------------------------------------------------------------
 
+// Linear allocator with fixed capacity
+typedef struct {
+        size_t cap;
+        size_t* len;
+} GldArena;
+
+[[nodiscard]] GLD_API bool gld_arena_valid(GldArena a);
+GLD_API void gld_arena_println(GldArena a);
+
+[[nodiscard]] GLD_API GldArena gld_arena_alloc(size_t capacity);
+
+#ifndef GLADIUS_PREFIXED
+#define Arena         GldArena
+#define arena_valid   gld_arena_valid
+#define arena_println gld_arena_println
+#define arena_alloc   gld_arena_alloc
+#endif // GLADIUS_PREFIXED
+
 #ifdef GLADIUS_IMPLEMENTATION
+bool
+gld_arena_valid(GldArena a) {
+        return a.cap > 0 && a.len != nullptr && *a.len <= a.cap;
+}
+
+void
+gld_arena_println(GldArena a) {
+        assert(gld_arena_valid(a) && "Invalid GldArena");
+        printf("GldArena{cap: %zu, len: %zu}\n", a.cap, *a.len);
+}
+
+GldArena
+gld_arena_alloc(size_t capacity) {
+        assert(capacity > 0 && "Invalid capacity");
+        assert(capacity <= SIZE_MAX - sizeof(size_t) && "Invalid capacity");
+        size_t total = sizeof(size_t) + capacity;
+        GldArena a = {
+                .cap = capacity,
+                .len = GLD_MALLOC(total),
+        };
+        GLD_PANIC(a.len == nullptr, "GLD_MALLOC failed");
+        *a.len = 0;
+        return a;
+}
 #endif // GLADIUS_IMPLEMENTATION
 
 #endif // GLADIUS_HEADER
