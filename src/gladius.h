@@ -13,7 +13,8 @@
  *              #include "gladius.h"
  *
  * Note:
- *      - Assertions for error handling. No need to check return values.
+ *      - No need to check return values. Panics on error by default.
+ *      - Define NDEBUG to disable it and optimize for release builds.
  *      - Short aliases by default. Define GLADIUS_PREFIXED to disable.
 */
 
@@ -26,9 +27,8 @@
 #error "Gladius requires C23 or later."
 #endif
 
+#include <assert.h>
 #include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #ifndef GLD_API
@@ -43,26 +43,30 @@
 #define GLD_FREE(ptr) free(ptr)
 #endif // GLD_FREE
 
-#ifndef GLD_ASSERT
-#define GLD_ASSERT(condition, message)                                                             \
+#ifdef NDEBUG
+#define GLD_PANIC(cond, msg)                                                                       \
         do {                                                                                       \
-                if (!(condition)) {                                                                \
+                if (cond)                                                                          \
+                        unreachable();                                                             \
+        } while (0)
+#else
+#define GLD_PANIC(cond, msg)                                                                       \
+        do {                                                                                       \
+                if (cond) {                                                                        \
                         fprintf(stderr,                                                            \
+                                "GLD_PANIC: " msg "\n"                                             \
                                 "File \"%s\", line %d, in %s\n"                                    \
-                                "%s:\n"                                                            \
-                                "\t%s\n",                                                          \
-                                __FILE__, __LINE__, __func__, message, #condition);                \
+                                "\t" #cond "\n",                                                   \
+                                __FILE__, __LINE__, __func__);                                     \
                         exit(EXIT_FAILURE);                                                        \
                 }                                                                                  \
         } while (0)
-#endif // GLD_ASSERT
-
-#ifdef NDEBUG
-#undef GLD_ASSERT
-#define GLD_ASSERT(condition, message) ((void)condition, (void)message)
 #endif // NDEBUG
 
 // Arena -------------------------------------------------------------------------------------------
+
+#ifdef GLADIUS_IMPLEMENTATION
+#endif // GLADIUS_IMPLEMENTATION
 
 #endif // GLADIUS_HEADER
 
