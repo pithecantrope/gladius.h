@@ -26,10 +26,17 @@ TEST(arena_new) {
         check((0 & (0 - 1)) == 0);
 }
 
+TEST(arena_scratch) {
+        size_t before = *a.len;
+        SCRATCH(a) { (void)NEW(a, long, 2); }
+        check(before == *a.len);
+}
+
 TEST(arena) {
         check(a.cap == ARENA_CAPACITY);
         test_arena_reset(a);
         test_arena_new(a);
+        test_arena_scratch(a);
 }
 
 int

@@ -86,6 +86,10 @@ GLD_API void gld_arena_free(GldArena a);
 
 [[nodiscard]] GLD_API void* gld_arena_new(GldArena a, size_t count, size_t size, size_t align);
 #define GLD_NEW(a, type, num) (type*)gld_arena_new(a, num, sizeof(type), alignof(type))
+#define GLD_SCRATCH(a)                                                                             \
+        for (size_t gld__len = *a.len, gld__once = 1; gld__once; gld__once = 0, *a.len = gld__len)
+// TODO: consider TEMP or SCOPE
+// TODO: end/begin but storing len is trivial
 
 #ifndef GLADIUS_PREFIXED
 #define Arena         GldArena
@@ -99,6 +103,7 @@ GLD_API void gld_arena_free(GldArena a);
 #define arena_free    gld_arena_free
 #define arena_new     gld_arena_new
 #define NEW           GLD_NEW
+#define SCRATCH       GLD_SCRATCH
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
@@ -156,6 +161,7 @@ gld_arena_new(GldArena a, size_t count, size_t size, size_t align) {
 }
 #endif // GLADIUS_IMPLEMENTATION
 
+// String ------------------------------------------------------------------------------------------
 #endif // GLADIUS_HEADER
 
 /*
