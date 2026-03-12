@@ -76,13 +76,29 @@ typedef struct {
 [[nodiscard]] GLD_API bool gld_arena_valid(GldArena a);
 GLD_API void gld_arena_println(GldArena a);
 
+#define GLD_KiB(x) ((size_t)(x) << 10)
+#define GLD_MiB(x) ((size_t)(x) << 20)
+#define GLD_GiB(x) ((size_t)(x) << 30)
+
 [[nodiscard]] GLD_API GldArena gld_arena_alloc(size_t capacity);
+GLD_API void gld_arena_reset(GldArena a);
+GLD_API void gld_arena_free(GldArena a);
+
+GLD_API void* gld_arena_new(GldArena a, size_t count, size_t size, size_t align);
+#define GLD_NEW(a, type, num) (type*)gld_arena_new(a, num, sizeof(type), alignof(type))
 
 #ifndef GLADIUS_PREFIXED
 #define Arena         GldArena
 #define arena_valid   gld_arena_valid
 #define arena_println gld_arena_println
+#define KiB           GLD_KiB
+#define MiB           GLD_MiB
+#define GiB           GLD_GiB
 #define arena_alloc   gld_arena_alloc
+#define arena_reset   gld_arena_reset
+#define arena_free    gld_arena_free
+#define arena_new     gld_arena_new
+#define NEW           GLD_NEW
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
@@ -109,6 +125,19 @@ gld_arena_alloc(size_t capacity) {
         GLD_PANIC(a.len == nullptr, "GLD_MALLOC failed");
         *a.len = 0;
         return a;
+}
+
+void
+gld_arena_reset(GldArena a) {
+        assert(gld_arena_valid(a) && "Invalid GldArena");
+        *a.len = 0;
+}
+
+void
+gld_arena_free(GldArena a) {
+        assert(gld_arena_valid(a) && "Invalid GldArena");
+        *a.len = SIZE_MAX;
+        GLD_FREE(a.len);
 }
 #endif // GLADIUS_IMPLEMENTATION
 
