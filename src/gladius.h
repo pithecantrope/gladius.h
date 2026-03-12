@@ -84,7 +84,7 @@ GLD_API void gld_arena_println(GldArena a);
 GLD_API void gld_arena_reset(GldArena a);
 GLD_API void gld_arena_free(GldArena a);
 
-GLD_API void* gld_arena_new(GldArena a, size_t count, size_t size, size_t align);
+[[nodiscard]] GLD_API void* gld_arena_new(GldArena a, size_t count, size_t size, size_t align);
 #define GLD_NEW(a, type, num) (type*)gld_arena_new(a, num, sizeof(type), alignof(type))
 
 #ifndef GLADIUS_PREFIXED
@@ -138,6 +138,21 @@ gld_arena_free(GldArena a) {
         assert(gld_arena_valid(a) && "Invalid GldArena");
         *a.len = SIZE_MAX;
         GLD_FREE(a.len);
+}
+
+void*
+gld_arena_new(GldArena a, size_t count, size_t size, size_t align) {
+        assert(gld_arena_valid(a) && "Invalid GldArena");
+        assert(size > 0 && "Invalid size");
+        assert(align > 0 && (align & (align - 1)) == 0 && "Invalid align");
+
+        char* mem = (char*)a.len + sizeof(size_t);
+        size_t padding = -(uintptr_t)(mem + *a.len) & (align - 1);
+        assert(a.cap - *a.len >= padding && "Increase GldArena capacity");
+        assert(count <= (a.cap - *a.len - padding) / size && "Increase GldArena capacity");
+        void* ptr = mem + *a.len + padding;
+        *a.len += padding + count * size;
+        return ptr;
 }
 #endif // GLADIUS_IMPLEMENTATION
 
