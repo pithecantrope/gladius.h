@@ -65,6 +65,10 @@
         } while (0)
 #endif // NDEBUG
 
+#define GLD_CONCAT_(left, right) left##right
+#define GLD_CONCAT(left, right)  GLD_CONCAT_(left, right)
+#define GLD_UNIQUE(name)         GLD_CONCAT(name, __LINE__)
+
 // Arena -------------------------------------------------------------------------------------------
 
 // Linear allocator with fixed capacity
@@ -86,24 +90,29 @@ GLD_API void gld_arena_free(GldArena a);
 
 [[nodiscard]] GLD_API void* gld_arena_new(GldArena a, size_t count, size_t size, size_t align);
 #define GLD_NEW(a, type, num) (type*)gld_arena_new(a, num, sizeof(type), alignof(type))
-#define GLD_SCRATCH(a)                                                                             \
-        for (size_t gld__len = *a.len, gld__once = 1; gld__once; gld__once = 0, *a.len = gld__len)
-// TODO: consider TEMP or SCOPE
-// TODO: end/begin but storing len is trivial
+#define GLD_SCOPE(a)                                                                               \
+        for (size_t GLD_UNIQUE(len) = *a.len, GLD_UNIQUE(once) = 1; GLD_UNIQUE(once);              \
+             GLD_UNIQUE(once) = 0, *a.len = GLD_UNIQUE(len))                                       \
+                for (int GLD_UNIQUE(break) = 1; GLD_UNIQUE(break); GLD_UNIQUE(break) = 0)
+
+[[nodiscard]] GLD_API bool gld_arena_contains(GldArena a, void* ptr);
+[[nodiscard]] GLD_API bool gld_arena_newest(GldArena a, void* ptr, size_t size);
 
 #ifndef GLADIUS_PREFIXED
-#define Arena         GldArena
-#define arena_valid   gld_arena_valid
-#define arena_println gld_arena_println
-#define KiB           GLD_KiB
-#define MiB           GLD_MiB
-#define GiB           GLD_GiB
-#define arena_alloc   gld_arena_alloc
-#define arena_reset   gld_arena_reset
-#define arena_free    gld_arena_free
-#define arena_new     gld_arena_new
-#define NEW           GLD_NEW
-#define SCRATCH       GLD_SCRATCH
+#define Arena          GldArena
+#define arena_valid    gld_arena_valid
+#define arena_println  gld_arena_println
+#define KiB            GLD_KiB
+#define MiB            GLD_MiB
+#define GiB            GLD_GiB
+#define arena_alloc    gld_arena_alloc
+#define arena_reset    gld_arena_reset
+#define arena_free     gld_arena_free
+#define arena_new      gld_arena_new
+#define NEW            GLD_NEW
+#define SCOPE          GLD_SCOPE
+#define arena_contains gld_arena_contains
+#define arena_newest   gld_arena_newest
 #endif // GLADIUS_PREFIXED
 
 #ifdef GLADIUS_IMPLEMENTATION
@@ -115,7 +124,7 @@ gld_arena_valid(GldArena a) {
 void
 gld_arena_println(GldArena a) {
         assert(gld_arena_valid(a) && "Invalid GldArena");
-        printf("GldArena{cap: %zu, len: %zu}\n", a.cap, *a.len);
+        printf("GldArena{cap:%zu, len:%zu}\n", a.cap, *a.len);
 }
 
 GldArena
@@ -149,7 +158,7 @@ void*
 gld_arena_new(GldArena a, size_t count, size_t size, size_t align) {
         assert(gld_arena_valid(a) && "Invalid GldArena");
         assert(size > 0 && "Invalid size");
-        assert(align > 0 && (align & (align - 1)) == 0 && "Invalid align");
+        assert(align > 0 && (align & (align - 1)) == 0 && "Invalid alignment");
 
         char* mem = (char*)a.len + sizeof(size_t);
         size_t padding = -(uintptr_t)(mem + *a.len) & (align - 1);
@@ -158,6 +167,22 @@ gld_arena_new(GldArena a, size_t count, size_t size, size_t align) {
         void* ptr = mem + *a.len + padding;
         *a.len += padding + count * size;
         return ptr;
+}
+
+bool
+gld_arena_contains(GldArena a, void* ptr) {
+        assert(gld_arena_valid(a) && "Invalid GldArena");
+        assert(ptr != nullptr && "Invalid pointer");
+        char* mem = (char*)a.len + sizeof(size_t);
+        return mem <= (char*)ptr && (char*)ptr <= mem + *a.len;
+}
+
+bool
+gld_arena_newest(GldArena a, void* ptr, size_t size) {
+        assert(gld_arena_valid(a) && "Invalid GldArena");
+        assert(ptr != nullptr && "Invalid pointer");
+        char* mem = (char*)a.len + sizeof(size_t);
+        return mem + *a.len == (char*)ptr + size;
 }
 #endif // GLADIUS_IMPLEMENTATION
 
