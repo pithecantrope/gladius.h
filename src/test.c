@@ -2,8 +2,7 @@
 // #define GLD_API static inline
 // #define GLD_MALLOC(size) custom_malloc(size)
 // #define GLD_FREE(ptr)    custom_free(ptr)
-// #define GLADIUS_PREFIXED
-#include <stdint.h>
+// TODO: #define GLADIUS_PREFIXED
 #define GLADIUS_IMPLEMENTATION
 #include "gladius.h"
 
@@ -23,12 +22,14 @@ TEST(arena_new) {
         arr[0] = arr[1] = arr[2] = 7;
         (void)NEW(a, int32_t, 1);
         check(*arr == 7 && *a.len == 8);
-        check((0 & (0 - 1)) == 0);
 }
 
-TEST(arena_scratch) {
+TEST(arena_scope) {
         size_t before = *a.len;
-        SCRATCH(a) { (void)NEW(a, long, 2); }
+        SCOPE(a) {
+                (void)NEW(a, long, 2);
+                break;
+        }
         check(before == *a.len);
 }
 
@@ -36,7 +37,7 @@ TEST(arena) {
         check(a.cap == ARENA_CAPACITY);
         test_arena_reset(a);
         test_arena_new(a);
-        test_arena_scratch(a);
+        test_arena_scope(a);
 }
 
 int

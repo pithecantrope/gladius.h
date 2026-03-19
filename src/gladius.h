@@ -13,8 +13,7 @@
  *              #include "gladius.h"
  *
  * Note:
- *      - No need to check return values. Panics on error by default.
- *      - Define NDEBUG to disable it and optimize for release builds.
+ *      - Panics on failure by default. No need to check return values.
  *      - Short aliases by default. Define GLADIUS_PREFIXED to disable.
 */
 
@@ -88,6 +87,7 @@ GLD_API void gld_arena_println(GldArena a);
 GLD_API void gld_arena_reset(GldArena a);
 GLD_API void gld_arena_free(GldArena a);
 
+// Zero count is valid
 [[nodiscard]] GLD_API void* gld_arena_new(GldArena a, size_t count, size_t size, size_t align);
 #define GLD_NEW(a, type, num) (type*)gld_arena_new(a, num, sizeof(type), alignof(type))
 #define GLD_SCOPE(a)                                                                               \
@@ -179,8 +179,7 @@ gld_arena_contains(GldArena a, void* ptr) {
 
 bool
 gld_arena_newest(GldArena a, void* ptr, size_t size) {
-        assert(gld_arena_valid(a) && "Invalid GldArena");
-        assert(ptr != nullptr && "Invalid pointer");
+        assert(gld_arena_contains(a, ptr) && "Invalid pointer");
         char* mem = (char*)a.len + sizeof(size_t);
         return mem + *a.len == (char*)ptr + size;
 }

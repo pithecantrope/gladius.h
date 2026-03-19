@@ -4,6 +4,22 @@ Header-only C23 arena-owned containers.
 > *Gladius - The Sword of Arena Allocation.*
 
 ### Features
+
+Idea:
+// Appends '\0', runs your block, then removes it TEMP_CSTR_READ(s) { printf("%s\n", string_data_ptr(s)); // safe to use as cstr here } // '\0' removed here
+
+https://pkg.odin-lang.org/core/strings/
+https://github.com/GNOME/glib/blob/main/glib/gstring.h
+https://pkg.go.dev/strings
+https://github.com/scott-ainsworth/go-ascii/blob/master/ascii.go
+
+String pre:
+https://github.com/pithecantrope/gladius.h/blob/1949051c03dfc019d68c129afdc90229e2918652/src/tests.c
+
+String pre pre:
+https://github.com/pithecantrope/just/blob/cbb35a8659d7568fb43b4d28403f3b6cc0801890/src/just.h
+https://github.com/pithecantrope/just/blob/cbb35a8659d7568fb43b4d28403f3b6cc0801890/src/just.c
+
 - No hidden allocations. Zero runtime overhead. Type safety. Cache-friendly
 - There is no shared ownership, no reference counting, no implicit heap allocation behind your back
 - No manual memory management. Arena owns everything
