@@ -20,7 +20,7 @@
 #define GLADIUS_VERSION       "0.0"
 
 #if !(defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 202000L))
-#error "Gladius requires C23 or later."
+#error "Gladius requires C23 or later"
 #endif
 
 #include <stdarg.h>
@@ -41,8 +41,8 @@
 #define check(expression, message, ...)                                                            \
         do {                                                                                       \
                 if (!(expression)) {                                                               \
-                        gld__check_failed(#expression, __FILE__, __LINE__, __func__,               \
-                                          message __VA_OPT__(, ) __VA_ARGS__);                     \
+                        gld__check_fail(#expression, __FILE__, __LINE__, __func__,                 \
+                                        message __VA_OPT__(, ) __VA_ARGS__);                       \
                 }                                                                                  \
         } while (0)
 #endif
@@ -50,26 +50,29 @@
 #if __has_c_attribute(gnu::format)
 [[gnu::format(printf, 5, 6)]]
 #endif
-[[noreturn]] void gld__check_failed(const char* expression, const char* file, int line,
-                                    const char* func, const char* format, ...);
+[[noreturn]] void gld__check_fail(const char* expression, const char* file, int line,
+                                  const char* func, const char* format, ...);
 
 #ifdef GLADIUS_IMPLEMENTATION
 void
-gld__check_failed(const char* expression, const char* file, int line, const char* func,
-                  const char* format, ...) {
+gld__check_fail(const char* expression, const char* file, int line, const char* func,
+                const char* format, ...) {
         va_list args;
         va_start(args, format);
         fprintf(stderr, "File \"%s\", line %d, in %s:\n", file, line, func);
 
         fprintf(stderr, "\tcheck(%s);\n", expression);
+
         fputs("\t      ", stderr);
         for (size_t i = 0; i < strlen(expression); ++i) {
                 fputc('^', stderr);
         }
-        fputs("\nFailure: ", stderr);
-        vfprintf(stderr, format, args);
-
         fputc('\n', stderr);
+
+        fputs("Failure: ", stderr);
+        vfprintf(stderr, format, args);
+        fputc('\n', stderr);
+
         va_end(args);
         exit(EXIT_FAILURE);
 }
