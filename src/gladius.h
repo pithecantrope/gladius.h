@@ -1,4 +1,4 @@
-/* gladius.h - v0.0.0 - MIT - https://github.com/pithecantrope/gladius.h
+/* gladius.h - v0.0 - MIT - https://github.com/pithecantrope/gladius.h
  *
  * Gladius: C, Sharpened.
  *
@@ -15,39 +15,65 @@
 
 #ifndef GLADIUS_HEADER
 #define GLADIUS_HEADER
+#define GLADIUS_VERSION_MAJOR 0
+#define GLADIUS_VERSION_MINOR 0
+#define GLADIUS_VERSION       "0.0"
 
 #if !(defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 202000L))
 #error "Gladius requires C23 or later."
 #endif
 
-#include <assert.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#ifndef API
-#define API extern
-#endif // API
+#ifdef NDEBUG
+#define check(expression, message, ...)                                                            \
+        do {                                                                                       \
+                if (!(expression)) {                                                               \
+                        unreachable();                                                             \
+                }                                                                                  \
+        } while (0)
+#else
+#define check(expression, message, ...)                                                            \
+        do {                                                                                       \
+                if (!(expression)) {                                                               \
+                        gld__check_failed(#expression, __FILE__, __LINE__, __func__,               \
+                                          message __VA_OPT__(, ) __VA_ARGS__);                     \
+                }                                                                                  \
+        } while (0)
+#endif
 
-#ifndef MALLOC
-#define MALLOC(size) malloc(size)
-#endif // MALLOC
-
-#ifndef FREE
-#define FREE(ptr) free(ptr)
-#endif // FREE
-
-#define CONCAT_(left, right) left##right
-#define CONCAT(left, right)  CONCAT_(left, right)
-#define UNIQUE(name)         CONCAT(name, __LINE__)
-
-// Arena -------------------------------------------------------------------------------------------
+#if __has_c_attribute(gnu::format)
+[[gnu::format(printf, 5, 6)]]
+#endif
+[[noreturn]] void gld__check_failed(const char* expression, const char* file, int line,
+                                    const char* func, const char* format, ...);
 
 #ifdef GLADIUS_IMPLEMENTATION
-#endif // GLADIUS_IMPLEMENTATION
+void
+gld__check_failed(const char* expression, const char* file, int line, const char* func,
+                  const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        fprintf(stderr, "File \"%s\", line %d, in %s:\n", file, line, func);
 
-// String ------------------------------------------------------------------------------------------
+        fprintf(stderr, "\tcheck(%s);\n", expression);
+        fputs("\t      ", stderr);
+        for (size_t i = 0; i < strlen(expression); ++i) {
+                fputc('^', stderr);
+        }
+        fputs("\nFailure: ", stderr);
+        vfprintf(stderr, format, args);
+
+        fputc('\n', stderr);
+        va_end(args);
+        exit(EXIT_FAILURE);
+}
+#endif // GLADIUS_IMPLEMENTATION
 #endif // GLADIUS_HEADER
 
 /*
