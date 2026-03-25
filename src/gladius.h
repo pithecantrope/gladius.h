@@ -47,6 +47,16 @@
         } while (0)
 #endif
 
+typedef struct {
+        size_t size;
+        size_t* used;
+} Arena;
+
+#define PRIArena    "{size:%zu, used:%zu}"
+#define FMTArena(a) (a).size, ((a).used ? *(a).used : SIZE_MAX)
+[[nodiscard]] bool arena_valid(Arena a);
+void arena_dump(Arena a);
+
 #if __has_c_attribute(gnu::format)
 [[gnu::format(printf, 5, 6)]]
 #endif
@@ -54,6 +64,17 @@
                                   const char* func, const char* format, ...);
 
 #ifdef GLADIUS_IMPLEMENTATION
+bool
+arena_valid(Arena a) {
+        return a.size > 0 && a.used != nullptr && a.size >= *a.used;
+}
+
+void
+arena_dump(Arena a) {
+        check(arena_valid(a), "Invalid Arena " PRIArena, FMTArena(a));
+        printf("Arena" PRIArena "\n", FMTArena(a));
+}
+
 void
 gld__check_fail(const char* expression, const char* file, int line, const char* func,
                 const char* format, ...) {
@@ -72,7 +93,6 @@ gld__check_fail(const char* expression, const char* file, int line, const char* 
         fputs("Failure: ", stderr);
         vfprintf(stderr, format, args);
         fputc('\n', stderr);
-
         va_end(args);
         exit(EXIT_FAILURE);
 }
