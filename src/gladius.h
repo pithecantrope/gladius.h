@@ -57,6 +57,11 @@ typedef struct {
 [[nodiscard]] bool arena_valid(Arena a);
 void arena_dump(Arena a);
 
+#define KiB(x) ((size_t)(x) << 10)
+#define MiB(x) ((size_t)(x) << 20)
+#define GiB(x) ((size_t)(x) << 30)
+[[nodiscard]] Arena arena_borrow(void* memory, size_t size);
+
 #if __has_c_attribute(gnu::format)
 [[gnu::format(printf, 5, 6)]]
 #endif
@@ -73,6 +78,16 @@ void
 arena_dump(Arena a) {
         check(arena_valid(a), "Invalid Arena " PRIArena, FMTArena(a));
         printf("Arena" PRIArena "\n", FMTArena(a));
+}
+
+Arena
+arena_borrow(void* memory, size_t size) {
+        check(memory != nullptr, "Invalid memory %p", memory);
+        size_t header = (-(uintptr_t)memory % alignof(size_t)) + sizeof(size_t);
+        check(size > header, "Invalid size, %zu must exceed %zu", size, header);
+        Arena a = {.size = size - header, .used = memory};
+        *a.used = 0;
+        return a;
 }
 
 void
