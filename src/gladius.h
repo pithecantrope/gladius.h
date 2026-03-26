@@ -62,6 +62,10 @@ void arena_dump(Arena a);
 #define GiB(x) ((size_t)(x) << 30)
 [[nodiscard]] Arena arena_borrow(void* memory, size_t size);
 
+void arena_reset(Arena a);
+[[nodiscard]] Arena arena_create(size_t bytes);
+void arena_destroy(Arena a);
+
 #if __has_c_attribute(gnu::format)
 [[gnu::format(printf, 5, 6)]]
 #endif
@@ -83,11 +87,34 @@ arena_dump(Arena a) {
 Arena
 arena_borrow(void* memory, size_t size) {
         check(memory != nullptr, "Invalid memory %p", memory);
-        size_t header = (-(uintptr_t)memory % alignof(size_t)) + sizeof(size_t);
-        check(size > header, "Invalid size, %zu must exceed %zu", size, header);
-        Arena a = {.size = size - header, .used = memory};
+        size_t padding = -(uintptr_t)memory & (alignof(size_t) - 1);
+        check(size > padding + sizeof(size_t), "Invalid size %zu", size);
+        size_t* used = (size_t*)((char*)memory + padding);
+        Arena a = {.size = size - padding - sizeof(size_t), .used = used};
         *a.used = 0;
         return a;
+}
+
+void
+arena_reset(Arena a) {
+        check(arena_valid(a), "Invalid Arena " PRIArena, FMTArena(a));
+        *a.used = 0;
+}
+
+Arena
+arena_create(size_t bytes) {
+        check(0 < bytes && bytes <= SIZE_MAX - sizeof(size_t), "Invalid size %zu", bytes);
+        Arena a = {.size = bytes, .used = malloc(sizeof(size_t) + bytes)};
+        check(a.used != nullptr, "malloc(%zu) failed", sizeof(size_t) + bytes);
+        *a.used = 0;
+        return a;
+}
+
+void
+arena_destroy(Arena a) {
+        check(arena_valid(a), "Invalid Arena " PRIArena, FMTArena(a));
+        *a.used = SIZE_MAX;
+        free(a.used);
 }
 
 void
