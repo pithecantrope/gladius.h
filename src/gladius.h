@@ -66,6 +66,16 @@ void arena_reset(Arena a);
 [[nodiscard]] Arena arena_create(size_t bytes);
 void arena_destroy(Arena a);
 
+// Zero count is valid
+[[nodiscard]] void* arena_alloc(Arena a, size_t count, size_t size, size_t align);
+#define alloc(a, type)       (type*)arena_alloc(a, 1, sizeof(type), alignof(type))
+#define allocn(a, type, num) (type*)arena_alloc(a, num, sizeof(type), alignof(type))
+[[nodiscard]] bool arena_contains(Arena a, void* ptr);
+[[nodiscard]] bool arena_last_allocation(Arena a, void* ptr, size_t size);
+
+[[nodiscard]] size_t arena_mark_begin(Arena a);
+void arena_mark_end(Arena a, size_t used);
+
 #if __has_c_attribute(gnu::format)
 [[gnu::format(printf, 5, 6)]]
 #endif
@@ -115,6 +125,35 @@ arena_destroy(Arena a) {
         check(arena_valid(a), "Invalid Arena " PRIArena, FMTArena(a));
         *a.used = SIZE_MAX;
         free(a.used);
+}
+
+void*
+arena_alloc(Arena a, size_t count, size_t size, size_t align) {
+        check(arena_valid(a), "Invalid Arena " PRIArena, FMTArena(a));
+        check(size > 0, "Invalid size %zu", size);
+        check(align > 0 && (align & (align - 1)) == 0, "Invalid alignment %zu", align);
+
+        char* mem = (char*)a.used + sizeof(size_t);
+        size_t padding = -(uintptr_t)(mem + *a.used) & (align - 1);
+        check(a.size - *a.used >= padding, "Increase Arena size %zu", a.size);
+        check(count <= (a.size - *a.used - padding) / size, "Increase Arena size %zu", a.size);
+        void* ptr = mem + *a.used + padding;
+        *a.used += padding + count * size;
+        return ptr;
+}
+
+bool
+arena_contains(Arena a, void* ptr) {
+        check(arena_valid(a), "Invalid Arena " PRIArena, FMTArena(a));
+        check(ptr != nullptr, "Invalid pointer %p", ptr);
+        return ((char*)a.used + sizeof(size_t)) <= (char*)ptr
+               && (char*)ptr <= ((char*)a.used + sizeof(size_t) + *a.used);
+}
+
+bool
+arena_last_allocation(Arena a, void* ptr, size_t size) {
+        return arena_contains(a, ptr)
+               && ((char*)ptr + size) == ((char*)a.used + sizeof(size_t) + *a.used);
 }
 
 void

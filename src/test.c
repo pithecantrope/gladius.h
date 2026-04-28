@@ -26,11 +26,20 @@ TEST(arena_create_destroy) {
         test(!arena_valid(a));
 }
 
+TEST(arena_alloc) {}
+
+TEST(arena_contains) {}
+
+TEST(arena_last_allocation) {}
+
 TEST(arena) {
         test(a.size == ARENA_SIZE - sizeof(size_t));
         test_arena_valid(a);
         test_arena_reset(a);
         test_arena_create_destroy(a);
+        test_arena_alloc(a);
+        test_arena_contains(a);
+        test_arena_last_allocation(a);
 }
 
 int
